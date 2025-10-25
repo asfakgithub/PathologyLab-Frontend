@@ -53,6 +53,7 @@ import {
 } from '@mui/icons-material';
 import { getPatients, createPatient, updatePatient, deletePatient, getTests } from '../../services/api';
 import { invoiceService } from '../../services/invoiceService';
+import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const PatientManagementEnhanced = () => {
