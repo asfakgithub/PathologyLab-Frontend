@@ -17,10 +17,8 @@ import {
   TableRow,
   TablePagination,
   IconButton,
-  Chip,
   Alert,
   InputAdornment,
-  Fab,
   Avatar,
   Grid,
   Card,
@@ -34,7 +32,6 @@ import {
   Select,
   MenuItem,
   Autocomplete,
-  Checkbox,
   FormControlLabel,
   List,
   ListItem,
@@ -50,17 +47,10 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Person as PersonIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  Cake as CakeIcon,
-  LocationOn as LocationIcon,
-  Wc as GenderIcon,
   Receipt as InvoiceIcon,
-  LocalHospital as TestIcon,
   Save as SaveIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
 import { getPatients, createPatient, updatePatient, deletePatient, getTests } from '../../services/api';
 import { invoiceService } from '../../services/invoiceService';
 import LoadingSpinner from '../common/LoadingSpinner';

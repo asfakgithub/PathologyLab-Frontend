@@ -20,7 +20,6 @@ import {
   Chip,
   Alert,
   InputAdornment,
-  Fab,
   Grid,
   Card,
   CardContent,
@@ -37,8 +36,6 @@ import {
   Step,
   StepLabel,
   StepContent,
-  Checkbox,
-  FormControlLabel,
   Tooltip,
   Avatar
 } from '@mui/material';
@@ -49,23 +46,15 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Download as DownloadIcon,
-  Email as EmailIcon,
   Print as PrintIcon,
   Payment as PaymentIcon,
-  Receipt as ReceiptIcon,
   Person as PersonIcon,
-  LocalHospital as TestIcon,
-  MonetizationOn as MoneyIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon
+  Save as SaveIcon
 } from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
 import { invoiceService } from '../../services/invoiceService';
-import { getPatients, getTests } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const InvoiceManagementNew = () => {
-  const { user } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -390,7 +379,6 @@ const InvoiceManagementNew = () => {
 const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [patients, setPatients] = useState([]);
   const [tests, setTests] = useState([]);
   const [formData, setFormData] = useState({
     // Patient Information
@@ -415,11 +403,8 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
     paymentMethod: 'cash'
   });
 
-  const steps = ['Patient Info', 'Tests & Prices', 'Review & Submit'];
-
   useEffect(() => {
     if (open) {
-      fetchPatients();
       fetchTests();
       if (invoice) {
         setFormData({ ...invoice });
@@ -428,15 +413,6 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
       }
     }
   }, [open, invoice]);
-
-  const fetchPatients = async () => {
-    try {
-      const response = await getPatients();
-      setPatients(response.data || []);
-    } catch (error) {
-      console.error('Failed to fetch patients:', error);
-    }
-  };
 
   const fetchTests = async () => {
     try {

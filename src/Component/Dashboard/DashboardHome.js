@@ -24,7 +24,6 @@ import {
   Schedule as ScheduleIcon,
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
-  Warning as WarningIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
