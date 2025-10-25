@@ -26,11 +26,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Stepper,
-  Step,
-  StepLabel,
-  Alert,
-  Divider,
   List,
   ListItem,
   ListItemText,
@@ -42,14 +37,10 @@ import {
   Search as SearchIcon,
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Visibility as ViewIcon,
   Print as PrintIcon,
   Download as DownloadIcon,
   Assignment as ReportIcon,
-  Science as TestIcon,
-  Person as PersonIcon,
-  AttachMoney as MoneyIcon,
   CalendarToday as CalendarIcon,
   CheckCircle as CompleteIcon,
   HourglassEmpty as PendingIcon,
@@ -67,24 +58,8 @@ const ReportManagementEnhanced = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
-  const [openDialog, setOpenDialog] = useState(false);
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
-  const [dialogMode, setDialogMode] = useState('create');
-  const [activeStep, setActiveStep] = useState(0);
-  const [formData, setFormData] = useState({
-    patientId: '',
-    patientName: '',
-    tests: [],
-    reportDate: new Date(),
-    status: 'pending',
-    findings: '',
-    conclusion: '',
-    recommendations: '',
-    doctorNotes: '',
-    criticalValues: false,
-    attachments: []
-  });
 
   // Sample data
   useEffect(() => {
@@ -205,21 +180,7 @@ const ReportManagementEnhanced = () => {
 
   const handleEdit = (report) => {
     setSelectedReport(report);
-    setFormData({
-      patientId: report.patientId,
-      patientName: report.patientName,
-      tests: report.tests,
-      reportDate: new Date(report.reportDate),
-      status: report.status,
-      findings: report.findings,
-      conclusion: report.conclusion,
-      recommendations: report.recommendations,
-      doctorNotes: report.doctorNotes || '',
-      criticalValues: report.criticalValues,
-      attachments: report.attachments || []
-    });
-    setDialogMode('edit');
-    setOpenDialog(true);
+    // setOpenDialog(true); // This would open an edit dialog, which seems to be removed.
   };
 
   const handlePrint = (report) => {
@@ -416,23 +377,7 @@ const ReportManagementEnhanced = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => {
-              setDialogMode('create');
-              setFormData({
-                patientId: '',
-                patientName: '',
-                tests: [],
-                reportDate: new Date(),
-                status: 'pending',
-                findings: '',
-                conclusion: '',
-                recommendations: '',
-                doctorNotes: '',
-                criticalValues: false,
-                attachments: []
-              });
-              setOpenDialog(true);
-            }}
+            // onClick={() => setOpenDialog(true)} // This would open a create dialog.
           >
             Create Report
           </Button>

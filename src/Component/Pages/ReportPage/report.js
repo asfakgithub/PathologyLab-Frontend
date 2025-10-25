@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { 
   getPatient, 
@@ -21,13 +21,7 @@ function Report() {
   // Report data state
   const [reportResults, setReportResults] = useState([]);
   
-  useEffect(() => {
-    if (id) {
-      fetchPatientData();
-    }
-  }, [id]);
-
-  const fetchPatientData = async () => {
+  const fetchPatientData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -52,7 +46,13 @@ function Report() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      fetchPatientData();
+    }
+  }, [id, fetchPatientData]);
 
   const initializeReportResults = (tests) => {
     const initialResults = [];

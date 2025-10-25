@@ -3,7 +3,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import './ThemeSelector.css';
 
 const ThemeSelector = ({ className = '', showLabel = true }) => {
-  const { currentTheme, themes, changeTheme, theme } = useTheme();
+  const { currentTheme, themes, changeTheme } = useTheme();
 
   const themeDisplayNames = {
     light: 'Light',

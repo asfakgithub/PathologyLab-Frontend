@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   getPatient, 
@@ -31,7 +31,6 @@ const ReportForm = () => {
   // Data states
   const [patient, setPatient] = useState(null);
   const [report, setReport] = useState(null);
-  const [availableTests, setAvailableTests] = useState([]);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -86,20 +85,14 @@ const ReportForm = () => {
     internalNotes: ''
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [id, reportId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
       // Fetch available tests
-      const testsResponse = await getTests();
-      if (testsResponse?.success) {
-        setAvailableTests(testsResponse.data || []);
-      }
+      // This was unused, but we can keep the call if needed for other logic later.
+      await getTests();
       
       if (isEditMode && reportId) {
         // Edit mode - fetch existing report
@@ -164,7 +157,11 @@ const ReportForm = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, reportId, isEditMode]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const initializeTestResults = (patientTests) => {
     const initialResults = [];
