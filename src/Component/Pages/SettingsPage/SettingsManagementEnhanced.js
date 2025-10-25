@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -27,32 +27,47 @@ import {
   Avatar,
   Tabs,
   Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   Snackbar,
-  CircularProgress
+  CircularProgress,
+  Badge
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Business as BusinessIcon,
   Security as SecurityIcon,
   Notifications as NotificationIcon,
+  Backup as BackupIcon,
   Payment as PaymentIcon,
+  Print as PrintIcon,
   Email as EmailIcon,
   Sms as SmsIcon,
   Save as SaveIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
+  ExpandMore as ExpandMoreIcon,
   Check as CheckIcon,
+  Warning as WarningIcon,
   Info as InfoIcon,
   Storage as StorageIcon,
-  NetworkCheck as NetworkIcon, // This seems used, but the linter flagged it. Let's keep it for now as it might be a mistake.
+  NetworkCheck as NetworkIcon,
   Schedule as ScheduleIcon,
   Group as UsersIcon,
   Receipt as TaxIcon,
+  Language as LanguageIcon,
   Image as ImageIcon,
   CloudUpload as UploadIcon,
   Description as DocumentIcon,
@@ -69,12 +84,15 @@ import themeService from '../../../services/themeService';
 import settingsService from '../../../services/settingsService';
 
 const SettingsManagementEnhanced = () => {
-  useAuth(); // Intentionally not using the returned user object
+  const { user } = useAuth();
   const { currentTheme, themes, changeTheme, theme } = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogType, setDialogType] = useState('');
+  const [organizationSettings, setOrganizationSettings] = useState({});
   const [imageUploadDialogs, setImageUploadDialogs] = useState({
     header: false,
     footer: false,
@@ -82,10 +100,9 @@ const SettingsManagementEnhanced = () => {
     signature: false
   });
 
-  const fetchOrganizationSettings = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await settingsService.getOrganizationSettings();
+  // Initialize settings with default values
+  useEffect(() => {
+    fetchOrganizationSettings();
     const defaultSettings = {
       organization: {
         name: 'PathologyLab Medical Center',
@@ -95,8 +112,8 @@ const SettingsManagementEnhanced = () => {
         website: 'www.pathologylab.com',
         license: 'LAB-2024-001',
         logo: null,
-        header: response.data?.labInfo?.header || null,
-        footer: response.data?.labInfo?.footer || null,
+        header: null,
+        footer: null,
         seal: null,
         signature: null
       },
@@ -153,19 +170,35 @@ const SettingsManagementEnhanced = () => {
         autoArchive: true
       }
     };
-      setSettings(defaultSettings);
+    setSettings(defaultSettings);
+  }, []);
+
+  const fetchOrganizationSettings = async () => {
+    try {
+      setLoading(true);
+      const response = await settingsService.getOrganizationSettings();
+      if (response.data) {
+        setOrganizationSettings(response.data);
+        // Update settings state with fetched data
+        setSettings(prev => ({
+          ...prev,
+          organization: {
+            ...prev.organization,
+            ...response.data.labInfo,
+            header: response.data.labInfo?.header || null,
+            footer: response.data.labInfo?.footer || null,
+            seal: response.data.labInfo?.seal || null,
+            signature: response.data.labInfo?.signature || null
+          }
+        }));
+      }
     } catch (error) {
       console.error('❌ Error fetching organization settings:', error);
       showSnackbar('Error loading organization settings', 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  // Initialize settings with default values
-  useEffect(() => {
-    fetchOrganizationSettings();
-  }, [fetchOrganizationSettings]);
+  };
 
   const showSnackbar = (message, severity = 'success') => {
     setSnackbar({
