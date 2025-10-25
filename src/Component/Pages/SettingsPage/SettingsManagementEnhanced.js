@@ -1,281 +1,39 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  CardHeader,
-  TextField,
-  Switch,
-  FormControlLabel,
-  Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Alert,
-  Chip,
-  Avatar,
-  Tabs,
-  Tab,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Snackbar,
-  CircularProgress
-} from '@mui/material';
-import {
-  Settings as SettingsIcon,
-  Business as BusinessIcon,
-  Security as SecurityIcon,
-  Notifications as NotificationIcon,
-  Payment as PaymentIcon,
-  Email as EmailIcon,
-  Sms as SmsIcon,
-  Save as SaveIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  Check as CheckIcon,
-  Info as InfoIcon,
-  Storage as StorageIcon,
-  Schedule as ScheduleIcon,
-  Group as UsersIcon,
-  Receipt as TaxIcon,
-  Image as ImageIcon,
-  CloudUpload as UploadIcon,
-  Description as DocumentIcon,
-  Star as StarIcon,
-  Palette as ThemeIcon,
-  Analytics as ReportsIcon,
-  ContentCopy as CloneIcon,
-  Preview as PreviewIcon
-} from '@mui/icons-material';
+import { Box, Paper, Typography, Tabs, Tab, Snackbar, Alert } from '@mui/material';
+import { Business as BusinessIcon, Payment as PaymentIcon, Notifications as NotificationIcon, Security as SecurityIcon, Storage as StorageIcon, Palette as ThemeIcon } from '@mui/icons-material';
 import { useTheme } from '../../../context/ThemeContext';
-import ThemeSelector from '../../common/ThemeSelector/ThemeSelector';
-import themeService from '../../../services/themeService';
 import settingsService from '../../../services/settingsService';
 
 const SettingsManagementEnhanced = () => {
-  const { currentTheme, themes, changeTheme, theme } = useTheme();
+  const { currentTheme } = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [settings, setSettings] = useState({});
-  const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [imageUploadDialogs, setImageUploadDialogs] = useState({
-    header: false,
-    footer: false,
-    seal: false,
-    signature: false
-  });
 
-  // ✅ Wrapped in useCallback to prevent ESLint dependency warnings
   const fetchOrganizationSettings = useCallback(async () => {
     try {
-      setLoading(true);
       const response = await settingsService.getOrganizationSettings();
       if (response.data) {
-        // Update settings state with fetched data
         setSettings(prev => ({
           ...prev,
           organization: {
             ...prev.organization,
-            ...response.data.labInfo,
-            header: response.data.labInfo?.header || null,
-            footer: response.data.labInfo?.footer || null,
-            seal: response.data.labInfo?.seal || null,
-            signature: response.data.labInfo?.signature || null
+            ...response.data.labInfo
           }
         }));
       }
     } catch (error) {
-      console.error('❌ Error fetching organization settings:', error);
+      console.error('Error fetching organization settings:', error);
       showSnackbar('Error loading organization settings', 'error');
-    } finally {
-      setLoading(false);
     }
   }, []);
 
-  // ✅ useEffect with dependency fixed
   useEffect(() => {
     fetchOrganizationSettings();
-    const defaultSettings = {
-      organization: {
-        name: 'PathologyLab Medical Center',
-        address: '123 Medical Street, Healthcare City',
-        phone: '+1-234-567-8900',
-        email: 'info@pathologylab.com',
-        website: 'www.pathologylab.com',
-        license: 'LAB-2024-001',
-        logo: null,
-        header: null,
-        footer: null,
-        seal: null,
-        signature: null
-      },
-      billing: {
-        taxRate: 18,
-        currency: 'USD',
-        invoicePrefix: 'INV-',
-        enableAutoInvoice: true,
-        paymentMethods: ['Cash', 'Card', 'Bank Transfer', 'Insurance'],
-        defaultPaymentTerms: 30
-      },
-      notifications: {
-        emailNotifications: true,
-        smsNotifications: false,
-        reportReady: true,
-        appointmentReminders: true,
-        paymentDue: true,
-        criticalResults: true,
-        systemAlerts: false
-      },
-      security: {
-        sessionTimeout: 30,
-        passwordExpiry: 90,
-        twoFactorAuth: false,
-        loginAttempts: 5,
-        auditLog: true,
-        dataEncryption: true
-      },
-      system: {
-        backupFrequency: 'daily',
-        retentionPeriod: 365,
-        autoUpdate: false,
-        maintenanceMode: false,
-        apiRateLimit: 1000,
-        maxFileSize: 10
-      },
-      theme: {
-        mode: 'light',
-        primaryColor: '#1976d2',
-        secondaryColor: '#dc004e',
-        fontSize: 'medium',
-        fontFamily: 'Roboto',
-        borderRadius: 8,
-        customLogo: null,
-        compactMode: false,
-        animations: true
-      },
-      reports: {
-        defaultFormat: 'PDF',
-        includeLogos: true,
-        watermark: false,
-        digitalSignature: true,
-        reportTemplate: 'standard',
-        autoArchive: true
-      }
-    };
-    setSettings(defaultSettings);
   }, [fetchOrganizationSettings]);
 
   const showSnackbar = (message, severity = 'success') => {
     setSnackbar({ open: true, message, severity });
-  };
-
-  const handleImageUpload = async (imageType, file) => {
-    try {
-      setLoading(true);
-      const response = await settingsService.uploadOrganizationImage(imageType, file);
-      setSettings(prev => ({
-        ...prev,
-        organization: {
-          ...prev.organization,
-          [imageType]: response.data.imageUrl
-        }
-      }));
-      setImageUploadDialogs(prev => ({ ...prev, [imageType]: false }));
-      showSnackbar(`${imageType} image uploaded successfully!`);
-      await fetchOrganizationSettings();
-    } catch (error) {
-      console.error(`❌ Error uploading ${imageType} image:`, error);
-      showSnackbar(`Error uploading ${imageType} image`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveOrganizationSettings = async () => {
-    try {
-      setLoading(true);
-      const organizationData = {
-        labInfo: {
-          name: settings.organization.name,
-          tagline: settings.organization.tagline || '',
-          address: {
-            street: settings.organization.address || '',
-            city: settings.organization.city || '',
-            state: settings.organization.state || '',
-            zipCode: settings.organization.zipCode || '',
-            country: settings.organization.country || 'India'
-          },
-          contact: {
-            phone: settings.organization.phone,
-            email: settings.organization.email,
-            website: settings.organization.website || '',
-            fax: settings.organization.fax || ''
-          },
-          registration: {
-            licenseNumber: settings.organization.license || '',
-            gstNumber: settings.organization.gstNumber || '',
-            panNumber: settings.organization.panNumber || ''
-          },
-          logo: settings.organization.logo,
-          header: settings.organization.header,
-          footer: settings.organization.footer,
-          seal: settings.organization.seal,
-          signature: settings.organization.signature
-        }
-      };
-      await settingsService.updateOrganizationSettings(organizationData);
-      showSnackbar('Organization settings saved successfully!');
-      await fetchOrganizationSettings();
-    } catch (error) {
-      console.error('❌ Error saving organization settings:', error);
-      showSnackbar('Error saving organization settings', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async (section) => {
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSnackbar({
-        open: true,
-        message: `${section} settings saved successfully!`,
-        severity: 'success'
-      });
-    } catch {
-      setSnackbar({
-        open: true,
-        message: 'Failed to save settings',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateSetting = (section, key, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [key]: value
-      }
-    }));
   };
 
   const TabPanel = ({ children, value, index, ...other }) => (
@@ -290,11 +48,6 @@ const SettingsManagementEnhanced = () => {
     </div>
   );
 
-  /* 🏗️ Rest of your components like OrganizationSettings, BillingSettings,
-       NotificationSettings, SecuritySettings, SystemSettings, ThemeSettings
-       remain unchanged — no ESLint issues there.
-       (You can keep the same code from your existing file for those sections.) */
-
   return (
     <Box p={3}>
       <Box mb={3}>
@@ -306,7 +59,6 @@ const SettingsManagementEnhanced = () => {
         </Typography>
       </Box>
 
-      {/* Tabs and Panels */}
       <Paper sx={{ width: '100%' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
@@ -338,6 +90,7 @@ const SettingsManagementEnhanced = () => {
 };
 
 export default SettingsManagementEnhanced;
+
 
 // import React, { useState, useEffect } from 'react';
 // import {
