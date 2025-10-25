@@ -27,47 +27,48 @@ import {
   Avatar,
   Tabs,
   Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  // Table,
+  // TableBody,
+  // TableCell,
+  // TableContainer,
+  // TableHead,
+  // TableRow,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  // Accordion,
+  // AccordionSummary,
+  // AccordionDetails,
   Snackbar,
+  organizationSettings,
   CircularProgress,
-  Badge
+  // Badge
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Business as BusinessIcon,
   Security as SecurityIcon,
   Notifications as NotificationIcon,
-  Backup as BackupIcon,
+  // Backup as BackupIcon,
   Payment as PaymentIcon,
-  Print as PrintIcon,
+  // Print as PrintIcon,
   Email as EmailIcon,
   Sms as SmsIcon,
   Save as SaveIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
-  ExpandMore as ExpandMoreIcon,
+  // ExpandMore as ExpandMoreIcon,
   Check as CheckIcon,
-  Warning as WarningIcon,
+  // Warning as WarningIcon,
   Info as InfoIcon,
   Storage as StorageIcon,
-  NetworkCheck as NetworkIcon,
+  // NetworkCheck as NetworkIcon,
   Schedule as ScheduleIcon,
   Group as UsersIcon,
   Receipt as TaxIcon,
-  Language as LanguageIcon,
+  // Language as LanguageIcon,
   Image as ImageIcon,
   CloudUpload as UploadIcon,
   Description as DocumentIcon,
@@ -84,14 +85,14 @@ import themeService from '../../../services/themeService';
 import settingsService from '../../../services/settingsService';
 
 const SettingsManagementEnhanced = () => {
-  const { user } = useAuth();
+  // const { user } = useAuth();
   const { currentTheme, themes, changeTheme, theme } = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [openDialog, setOpenDialog] = useState(false);
-  const [dialogType, setDialogType] = useState('');
+  // const [openDialog, setOpenDialog] = useState(false);
+  // const [dialogType, setDialogType] = useState('');
   const [organizationSettings, setOrganizationSettings] = useState({});
   const [imageUploadDialogs, setImageUploadDialogs] = useState({
     header: false,

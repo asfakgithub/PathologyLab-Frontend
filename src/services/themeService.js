@@ -288,4 +288,6 @@ class ThemeService {
 
 }
 
-export default new ThemeService();
+// export default new ThemeService();
+const themeService = new ThemeService();
+export default themeService;
