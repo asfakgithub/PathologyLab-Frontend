@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
   Paper,
   Typography,
   Button,
@@ -46,18 +45,15 @@ import {
   Search as SearchIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Person as PersonIcon,
   Receipt as InvoiceIcon,
   Save as SaveIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
 import { getPatients, createPatient, updatePatient, deletePatient, getTests } from '../../services/api';
 import { invoiceService } from '../../services/invoiceService';
-import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const PatientManagementEnhanced = () => {
-  const { user } = useAuth();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -130,7 +126,7 @@ const PatientManagementEnhanced = () => {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div style={{ padding: 24 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
           Patient Management
@@ -202,9 +198,7 @@ const PatientManagementEnhanced = () => {
                 <TableRow key={patient._id} hover>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        <PersonIcon />
-                      </Avatar>
+                      <Avatar sx={{ bgcolor: 'primary.main' }}>{patient.name?.charAt(0)}</Avatar>
                       <Box>
                         <Typography variant="body1" fontWeight="bold">
                           {patient.name}
@@ -301,7 +295,7 @@ const PatientManagementEnhanced = () => {
         }}
         onError={(error) => setError(error)}
       />
-    </Box>
+    </div>
   );
 };
 
@@ -340,10 +334,6 @@ const PatientFormDialog = ({ open, onClose, patient, invoiceMode = false, onSucc
     additionalCharges: 0,
     notes: ''
   });
-
-  const steps = createInvoice 
-    ? (invoiceMode ? ['Patient Details', 'Test Selection', 'Review & Submit'] : ['Patient Details', 'Medical Info', 'Test Selection', 'Review & Submit'])
-    : ['Patient Details', 'Medical Info', 'Review & Submit'];
 
   useEffect(() => {
     if (open) {
@@ -436,18 +426,14 @@ const PatientFormDialog = ({ open, onClose, patient, invoiceMode = false, onSucc
       };
 console.log("Patient adress is ",patientData?.address);
 
-      let savedPatient;
       if (invoiceMode) {
         // In invoice mode, just use existing patient data
-        savedPatient = patient;
       } else if (patient) {
         // Update existing patient
         await updatePatient(patient._id, patientData);
-        savedPatient = { ...patient, ...patientData };
       } else {
         // Create new patient
-        const response = await createPatient(patientData);
-        savedPatient = response.data;
+        await createPatient(patientData);
       }
 
       // Create invoice if requested and tests are selected

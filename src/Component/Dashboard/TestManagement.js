@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { getTests, deleteTest, createTest, updateTest } from '../../services/api';
-import { searchTests, getTestStats, getPopularTests } from '../../services/api';
 import {
   Box,
   Typography,
@@ -14,14 +13,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Tooltip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Snackbar,
   Alert,
   Grid,
@@ -29,7 +20,6 @@ import {
   FormControlLabel,
   Divider,
   Chip,
-  Fab,
   InputAdornment,
   FormControl,
   InputLabel,
@@ -109,12 +99,8 @@ function TestManagement() {
     'Other'
   ];
 
-  useEffect(() => {
-    fetchTests();
-  }, []);
-
   // Fetch all tests
-  const fetchTests = async () => {
+  const fetchTests = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getTests();
@@ -133,7 +119,11 @@ function TestManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchTests();
+  }, [fetchTests]);
 
   // Show snackbar
   const showSnackbar = (message, severity = 'success') => {
@@ -319,12 +309,11 @@ function TestManagement() {
 
       console.log('Test data being sent to API:', JSON.stringify(testData, null, 2));
 
-      let response;
       if (editingTest) {
-        response = await updateTest(editingTest._id, testData);
+        await updateTest(editingTest._id, testData);
         showSnackbar('Test updated successfully!', 'success');
       } else {
-        response = await createTest(testData);
+        await createTest(testData);
         showSnackbar('Test created successfully!', 'success');
       }
 
@@ -492,21 +481,6 @@ function TestManagement() {
           ))
         )}
       </Grid>
-
-      {/* Add Test FAB for mobile */}
-      <Fab
-        color="primary"
-        aria-label="add test"
-        sx={{ 
-          position: 'fixed', 
-          bottom: 16, 
-          right: 16,
-          display: { xs: 'flex', md: 'none' }
-        }}
-        onClick={() => handleOpenDialog()}
-      >
-        <AddIcon />
-      </Fab>
 
       {/* Test Form Dialog */}
       <Dialog 
