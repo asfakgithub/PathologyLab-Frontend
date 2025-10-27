@@ -7,14 +7,15 @@ class AuthService {
       const response = await api.post(endpoints.auth.login, credentials);
       
       if (response.success && response.data) {
-        const { user, token, expiresIn } = response.data;
+        const { user, accessToken, refreshToken, expiresIn } = response.data;
         
         // Store authentication data
-        localStorage.setItem('authToken', token);
+        localStorage.setItem('authToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('tokenExpiry', new Date(Date.now() + this.parseExpiryTime(expiresIn)).toISOString());
         
-        return { success: true, user, token };
+        return { success: true, user, token: accessToken };
       }
       
       return { success: false, message: response.message || 'Login failed' };
@@ -34,13 +35,14 @@ class AuthService {
       const response = await api.post(endpoints.auth.register, userData);
       
       if (response.success && response.data) {
-        const { user, token } = response.data;
+        const { user, accessToken, refreshToken } = response.data;
         
         // Store authentication data
-        localStorage.setItem('authToken', token);
+        localStorage.setItem('authToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
         localStorage.setItem('user', JSON.stringify(user));
         
-        return { success: true, user, token };
+        return { success: true, user, token: accessToken };
       }
       
       return { success: false, message: response.message || 'Registration failed' };
@@ -187,20 +189,54 @@ class AuthService {
     }
   }
 
-  // Create master user (one-time setup)
-  async createMasterUser() {
+  // Setup master user (one-time setup)
+  async setupMasterUser(userData) {
     try {
-      const response = await api.post(endpoints.auth.createMaster);
+      const response = await api.post(endpoints.auth.setupMaster, userData);
+      
+      if (response.success && response.data) {
+        const { user, accessToken, refreshToken, expiresIn } = response.data;
+        
+        // Store authentication data
+        localStorage.setItem('authToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken || '');
+        localStorage.setItem('user', JSON.stringify(user));
+        if (expiresIn) {
+          localStorage.setItem('tokenExpiry', new Date(Date.now() + this.parseExpiryTime(expiresIn)).toISOString());
+        }
+        
+        return { success: true, user, token: accessToken };
+      }
       
       return { 
         success: response.success, 
         message: response.message || (response.success ? 'Master user created successfully' : 'Failed to create master user')
       };
     } catch (error) {
-      console.error('Create master user error:', error);
+      console.error('Setup master user error:', error);
       return { 
         success: false, 
         message: error.message || 'Failed to create master user' 
+      };
+    }
+  }
+
+  // Check if setup is required
+  async checkSetup() {
+    try {
+      const response = await api.get(endpoints.auth.checkSetup);
+      
+      return { 
+        success: response.success, 
+        setupRequired: response.data?.setupRequired || false,
+        message: response.message
+      };
+    } catch (error) {
+      console.error('Check setup error:', error);
+      return { 
+        success: false, 
+        setupRequired: true,  // Assume setup is required if check fails
+        message: error.message || 'Failed to check setup status' 
       };
     }
   }
@@ -271,6 +307,11 @@ class AuthService {
       default: return 24 * 60 * 60 * 1000;
     }
   }
+
+
 }
 
-export default new AuthService();
+// export default new AuthService();
+const authService = new AuthService();
+export default authService;
+

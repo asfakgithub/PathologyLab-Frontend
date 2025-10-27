@@ -24,11 +24,10 @@ import {
   Schedule as ScheduleIcon,
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
-  Warning as WarningIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
-import { getDashboardStats } from '../../services/api';
+// import { getDashboardStats } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const StatCard = ({ title, value, icon, color, change, changeText }) => (
@@ -189,12 +188,12 @@ const DashboardHome = () => {
       setLoading(true);
       setError(null);
       
-      const response = await getDashboardStats();
-      if (response.data.success) {
-        setStats(response.data.data.stats);
-        setRecentActivities(response.data.data.recentActivities || []);
-        setTestStats(response.data.data.testStats || {});
-      }
+        // const response = await getDashboardStats();
+        // if (response.data.success) {
+        //   setStats(response.data.data.stats);
+        //   setRecentActivities(response.data.data.recentActivities || []);
+        //   setTestStats(response.data.data.testStats || {});
+        // }
     } catch (err) {
       console.error('Dashboard data fetch error:', err);
       setError('Failed to load dashboard data');

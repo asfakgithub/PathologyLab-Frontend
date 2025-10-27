@@ -1,0 +1,356 @@
+/**
+ * =========================================
+ * LEGACY REPORT STYLES - DEPRECATED
+ * =========================================
+ * 
+ * ⚠️  WARNING: This CSS file is DEPRECATED and no longer in active use.
+ * 
+ * These styles were used with the legacy report.js component.
+ * Please use the styles from the new professional components instead.
+ * 
+ * Created: Legacy
+ * Deprecated: July 31, 2025
+ * Reason: Replaced by professional report management components
+ */
+
+/*
+ORIGINAL STYLES COMMENTED OUT FOR REFERENCE
+==========================================
+
+:root {
+  --primary: #148080;
+  --secondary: #2d6a6a;
+  --accent: #e7f9f9;
+  --bg: #f9f9f9;
+  --card-bg: #fff;
+  --border: #ccecec;
+  --shadow: 0 4px 16px rgba(20,128,128,0.08);
+  --radius: 14px;
+  --transition: 0.3s cubic-bezier(.4,0,.2,1);
+  --error: #e53e3e;
+  --success: #38a169;
+  --warning: #d69e2e;
+}
+
+.report-page {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 20px;
+  padding-top: 80px;
+}
+
+.reportDiv {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  padding: 2rem;
+  border: 1px solid var(--border);
+}
+
+.report-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.report-header h2 {
+  color: var(--primary);
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.error-banner {
+  background: #fed7d7;
+  color: var(--error);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #feb2b2;
+}
+
+.error-message {
+  text-align: center;
+  padding: 3rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.error-message h2 {
+  color: var(--error);
+  margin-bottom: 1rem;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 1rem;
+  transition: var(--transition);
+}
+
+.btn-primary:hover {
+  background: var(--secondary);
+}
+
+.patient-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  background: var(--accent);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.report-info {
+  font-size: 1rem;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.report-info strong {
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+.report-inputBlock {
+  margin-top: 30px;
+  width: 100%;
+}
+
+.report-tests {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.report-tests h3 {
+  color: var(--primary);
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.report-tests p {
+  color: #666;
+  font-size: 1rem;
+}
+
+.inputRows {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inputRow {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(20,128,128,0.05);
+  border: 1px solid var(--border);
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--accent);
+}
+
+.result-header h4 {
+  color: var(--primary);
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.subtest-label {
+  color: var(--secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.remove-btn {
+  background: var(--error);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.remove-btn:hover {
+  background: #c53030;
+}
+
+.input-row-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.input-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .input-fields-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.input-row-group label {
+  font-size: 0.9rem;
+  color: var(--secondary);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.input-field-tests {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  background: var(--card-bg);
+  transition: var(--transition);
+  width: 100%;
+}
+
+.input-field-tests:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(20, 128, 128, 0.1);
+}
+
+.input-field-tests[required] {
+  border-left: 3px solid var(--primary);
+}
+
+.btn-grp-add-rem {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.add-btn-row {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  border: none;
+  box-shadow: 0 2px 8px rgba(20,128,128,0.15);
+  font-size: 1rem;
+  min-width: 120px;
+  text-align: center;
+}
+
+.add-btn-row:hover:not(:disabled) {
+  background: var(--secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(20,128,128,0.25);
+}
+
+.add-btn-row:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.add-btn-row.primary {
+  background: var(--success);
+}
+
+.add-btn-row.primary:hover:not(:disabled) {
+  background: #2f855a;
+}
+
+.add-btn-row.secondary {
+  background: #6c757d;
+}
+
+.add-btn-row.secondary:hover {
+  background: #5a6268;
+}
+
+@media (max-width: 768px) {
+  .reportDiv {
+    padding: 1rem;
+    margin: 0 10px;
+  }
+
+  .patient-info-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  .report-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .btn-grp-add-rem {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .add-btn-row {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .input-row-group {
+    min-width: auto;
+  }
+
+  .result-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .remove-btn {
+    align-self: flex-end;
+  }
+}
+
+END OF COMMENTED LEGACY STYLES
+==============================
+*/
+
+/* 
+ * This file is now empty as the legacy styles have been deprecated.
+ * Please use the styles from the new professional report components.
+ */

@@ -26,7 +26,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
 import './status.css';
 import Modal from '../../Modal/model';
-import { apiService, handleApiError } from '../../../utils/apiClient';
+import { getPatients, deletePatient } from '../../../services/api';
 import { useNotification } from '../../../contexts/NotificationContext';
 import noDataImage from '../../../assests/nodatafound.jpg';
 
@@ -55,13 +55,14 @@ const Status = () => {
     setError(null);
 
     try {
-      const response = await apiService.patients.getByStatus(activeBar, {
+      const response = await getPatients({
+        status: activeBar,
         page,
         limit: pagination.limit,
         sort: '-createdAt'
       });
 
-      const { patients, pagination: paginationData } = response.data.data;
+      const { patients, pagination: paginationData } = response.data;
       
       setData(patients);
       setPagination(paginationData);
@@ -72,10 +73,9 @@ const Status = () => {
       }
       
     } catch (err) {
-      const handledError = handleApiError(err);
-      setError(handledError);
-      showError(handledError.userMessage);
-      console.error('Error fetching patients:', handledError);
+      setError(err);
+      showError(err.message || 'Failed to fetch patients');
+      console.error('Error fetching patients:', err);
     } finally {
       setLoading(false);
     }
@@ -128,7 +128,7 @@ const Status = () => {
 
     try {
       setLoading(true);
-      await apiService.patients.delete(deleteDialog.patient._id);
+      await deletePatient(deleteDialog.patient._id);
       
       showSuccess(`Patient ${deleteDialog.patient.name} deleted successfully`);
       setDeleteDialog({ open: false, patient: null });
@@ -142,9 +142,8 @@ const Status = () => {
       fetchPatients(targetPage, false);
       
     } catch (err) {
-      const handledError = handleApiError(err);
-      showError(handledError.userMessage);
-      console.error('Error deleting patient:', handledError);
+      showError(err.message || 'Failed to delete patient');
+      console.error('Error deleting patient:', err);
     } finally {
       setLoading(false);
     }

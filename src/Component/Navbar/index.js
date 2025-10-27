@@ -88,6 +88,13 @@ function Navbar() {
         <img src={LogoILabU} className='imgLogoNavbar' alt='logo' />
       </Link>
       <div className='rightSideNavbar'>
+        <Link 
+          to='/settings' 
+          className='linksRightSideNavbar'
+          onClick={() => console.log('Settings link clicked!')}
+        >
+          Settings
+        </Link>
         <div
           className='linksRightSideNavbar'
           onClick={() => setOpenCreate((prev) => !prev)}
