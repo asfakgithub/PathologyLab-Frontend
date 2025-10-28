@@ -2,6 +2,7 @@
   "name": "pathologylab",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:8000",
   "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
   "license": "ISC",
   "author": "",
