@@ -53,6 +53,8 @@ import {
 import { getPatients, createPatient, updatePatient, deletePatient, getTests } from '../../services/api';
 import { invoiceService } from '../../services/invoiceService';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { useNavigate } from 'react-router-dom';
+
 
 const PatientManagementEnhanced = () => {
   const [patients, setPatients] = useState([]);
@@ -112,6 +114,9 @@ const PatientManagementEnhanced = () => {
     setInvoiceMode(true);
     setOpenDialog(true);
   };
+  const navigateTo = useNavigate();
+
+
 
   const filteredPatients = patients.filter(patient =>
     patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -227,7 +232,8 @@ const PatientManagementEnhanced = () => {
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <Tooltip title="View">
-                        <IconButton size="small" color="primary">
+                        <IconButton size="small" color="primary" onClick={() => navigateTo('/view')}>
+                          
                           <ViewIcon />
                         </IconButton>
                       </Tooltip>

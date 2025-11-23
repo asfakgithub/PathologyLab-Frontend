@@ -21,6 +21,7 @@ import ReportForm from './Component/Pages/ReportPage/ReportForm';
 import Report from './Component/Pages/ReportPage/report';
 
 import './App.css';
+import ViewPatient from './Component/Dashboard/ViewPatient';
 
 // MUI Theme Creator Component
 const MuiThemeCreator = ({ children }) => {
@@ -290,6 +291,17 @@ function AppContent() {
                 <ProtectedRoute allowedRoles={["master", "admin", "doctor", "technician", "receptionist"]}>
                   <React.Suspense fallback={<LoadingSpinner />}>
                     <Report />
+                  </React.Suspense>
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/view"
+              element={
+                <ProtectedRoute allowedRoles={["master", "admin", "doctor", "technician", "receptionist"]}>
+                  <React.Suspense fallback={<LoadingSpinner />}>
+                    <ViewPatient />
                   </React.Suspense>
                 </ProtectedRoute>
               } 
