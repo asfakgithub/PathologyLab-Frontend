@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
@@ -161,6 +161,16 @@ const MuiThemeCreator = ({ children }) => {
 };
 
 function AppContent() {
+  // Component to redirect from /view?id=... to /view/:id while preserving protection
+  const ViewRedirect = () => {
+    const location = useLocation();
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    if (id) return <Navigate to={`/view/${id}`} replace />;
+    // If no id provided, redirect to dashboard
+    return <Navigate to="/dashboard" replace />;
+  };
+
   return (
     <div className="App">
       <AuthProvider>
@@ -297,7 +307,7 @@ function AppContent() {
             />
 
             <Route 
-              path="/view"
+              path="/view/:id"
               element={
                 <ProtectedRoute allowedRoles={["master", "admin", "doctor", "technician", "receptionist"]}>
                   <React.Suspense fallback={<LoadingSpinner />}>
@@ -305,6 +315,16 @@ function AppContent() {
                   </React.Suspense>
                 </ProtectedRoute>
               } 
+            />
+
+            {/* Alias /view -> redirect to /view/:id when ?id= is present */}
+            <Route
+              path="/view"
+              element={
+                <ProtectedRoute allowedRoles={["master", "admin", "doctor", "technician", "receptionist"]}>
+                  <ViewRedirect />
+                </ProtectedRoute>
+              }
             />
 
             {/* Default Redirects */}

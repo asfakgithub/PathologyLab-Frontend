@@ -232,7 +232,7 @@ const PatientManagementEnhanced = () => {
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <Tooltip title="View">
-                        <IconButton size="small" color="primary" onClick={() => navigateTo('/view')}>
+                        <IconButton size="small" color="primary" onClick={() => navigateTo(`/view/${patient._id}`)}>
                           
                           <ViewIcon />
                         </IconButton>
