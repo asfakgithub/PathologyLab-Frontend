@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import patientService from '../../services/patientService';
-
+import { useNavigate } from 'react-router-dom';
 const ViewPatient = (props) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [patient, setPatient] = useState(null);
   const [enrichedTests, setEnrichedTests] = useState([]);
   const [resultsMap, setResultsMap] = useState({});
-
+const navigate = useNavigate();
   // Determine patientId: from props.patientId or query param ?id= or last path segment
   const getPatientIdFromLocation = () => {
     if (props && props.patientId) return props.patientId;
@@ -36,7 +36,9 @@ const ViewPatient = (props) => {
 
       try {
         setLoading(true);
-        const res = await patientService.getPatientById(patientId);
+          console.log('ViewPatient: fetching patient for id=', patientId);
+          const res = await patientService.getPatientById(patientId);
+          console.log('ViewPatient: patientService.getPatientById response=', res);
 
         // Backend returns { message, data: { patient, enrichedTests, results } }
         const payload = res.data || res;
@@ -55,7 +57,8 @@ const ViewPatient = (props) => {
         });
         setResultsMap(map);
       } catch (err) {
-        setError(err.message || 'Failed to load patient');
+        console.error('ViewPatient fetch error', err);
+        setError(err.message || err.toString() || 'Failed to load patient');
       } finally {
         setLoading(false);
       }
@@ -185,6 +188,17 @@ const ViewPatient = (props) => {
     setPatient(patientCopy);
   };
 
+  // Helper to convert a normalRange (which can be an object or string) into a display string.
+  const formatNormalRange = (range) => {
+    if (!range) return '';
+    if (typeof range === 'string') {
+      return range;
+    }
+    if (typeof range === 'object') {
+      return `Adult: ${range.adult || ''}, Child: ${range.child || ''}`;
+    }
+    return '';
+  };
   const savePatientInfo = async () => {
     try {
       setLoading(true);
@@ -210,11 +224,14 @@ const ViewPatient = (props) => {
           const entry = resultsMap[key];
           if (entry && (entry.value || entry.parameterName)) {
             resultsForTest.push({
-              subtestId: ss.subtestId || null,
+              subtestId: ss.subtestId || ss.tempId || null,
               parameterName: entry.parameterName || ss.subtestName || (ss.parameter && ss.parameter.name) || '',
               value: entry.value || '',
               unit: entry.unit || (ss.parameter && ss.parameter.unit) || '',
-              normalRange: entry.normalRange || (ss.parameter && ss.parameter.normalRange) || '',
+              // Ensure normalRange is always a string before sending to backend
+              normalRange: typeof entry.normalRange === 'object' 
+                ? formatNormalRange(entry.normalRange) 
+                : entry.normalRange || formatNormalRange(ss.parameter?.normalRange) || '',
               notes: entry.notes || ''
             });
           }
@@ -417,7 +434,7 @@ const ViewPatient = (props) => {
                     <td style={styles.tableCell}>
                       <input
                         style={{ width: '90%' }}
-                        value={existing.normalRange || (ss.parameter && ss.parameter.normalRange) || ''}
+                        value={formatNormalRange(existing.normalRange || (ss.parameter && ss.parameter.normalRange))}
                         onChange={(e) => handleResultChange(testId, subtestId || tempId, 'normalRange', e.target.value)}
                       />
                     </td>
@@ -448,6 +465,22 @@ const ViewPatient = (props) => {
         <button onClick={savePatientInfo}>Save Patient Info</button>
         <button onClick={saveResults}>Save Results</button>
         <button onClick={addCustomTest}>Add Custom Test</button>
+        <button onClick={() => {
+          try {
+            console.log('ViewPatient preview clicked, computed patientId=', patientId, 'props.patientId=', props && props.patientId);
+            const id = patientId;
+            if (id) {
+              // navigate to the report route in the same tab (use path param to match App.js)
+              navigate(`/patient-report/${id}`);
+            } else {
+              console.log('No patient id available for preview', patientId, props && props.patientId);
+              alert('No patient id available for preview');
+            }
+          } catch (e) {
+            console.error(e);
+            alert('Failed to open preview: ' + e.message);
+          }
+        }}>Preview Report</button>
       </div>
 
       <div style={styles.footer}>

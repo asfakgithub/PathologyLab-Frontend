@@ -22,6 +22,8 @@ import Report from './Component/Pages/ReportPage/report';
 
 import './App.css';
 import ViewPatient from './Component/Dashboard/ViewPatient';
+import PateintReport from './Component/Dashboard/PateintReport';
+import ErrorBoundary from './Component/common/ErrorBoundary';
 
 // MUI Theme Creator Component
 const MuiThemeCreator = ({ children }) => {
@@ -315,6 +317,20 @@ function AppContent() {
                   </React.Suspense>
                 </ProtectedRoute>
               } 
+            />
+
+            {/* Patient report preview - reads ?id= or last path segment */}
+            <Route
+              path="/patient-report/:id"
+              element={
+                <ProtectedRoute allowedRoles={["master", "admin", "doctor", "technician", "receptionist"]}>
+                  <ErrorBoundary>
+                    <React.Suspense fallback={<LoadingSpinner />}>
+                      <PateintReport />
+                    </React.Suspense>
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              }
             />
 
             {/* Alias /view -> redirect to /view/:id when ?id= is present */}
