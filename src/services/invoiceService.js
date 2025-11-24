@@ -51,7 +51,7 @@ export const invoiceService = {
   // Create new invoice
   createInvoice: async (invoiceData) => {
     try {
-      const endpoint = '/invoice/create';
+      const endpoint = '/api/v1/invoice/create';
       console.log('📡 CREATE INVOICE REQUEST:', `[POST]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
       const response = await invoiceApi.post(endpoint, invoiceData);
       return response;

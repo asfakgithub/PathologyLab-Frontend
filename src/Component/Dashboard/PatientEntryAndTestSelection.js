@@ -234,6 +234,9 @@ function PatientEntryAndTestSelection({ onReportGenerated }) {
     try {
       setLoading(true);
       
+      // Update patient with selected tests before generating report
+      await patientService.updatePatient(patient._id, { tests: patient.tests });
+
       // Check if patient has existing report
       const existingReportCheck = await reportService.checkPatientReport(patient._id);
       if (existingReportCheck.data.hasReport) {
