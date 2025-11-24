@@ -8,7 +8,7 @@ export const invoiceAPI = {
   // Create new invoice
   createInvoice: async (invoiceData) => {
     try {
-      const response = await apiClient.post('/api/v1/invoice/create', invoiceData);
+      const response = await apiClient.post('/api/v1/invoices/create', invoiceData);
       return response;
     } catch (error) {
       throw error;

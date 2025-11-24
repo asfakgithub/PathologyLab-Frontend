@@ -7,15 +7,22 @@ class AuthService {
       const response = await api.post(endpoints.auth.login, credentials);
       
       if (response.success && response.data) {
-        const { user, accessToken, refreshToken, expiresIn } = response.data;
-        
-        // Store authentication data
-        localStorage.setItem('authToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('tokenExpiry', new Date(Date.now() + this.parseExpiryTime(expiresIn)).toISOString());
-        
-        return { success: true, user, token: accessToken };
+        // Backend may return token as `token` or `accessToken`. Support both.
+        const { user, expiresIn } = response.data;
+        const accessToken = response.data?.token || response.data?.accessToken || response.data?.authToken || null;
+
+        if (accessToken) {
+          // Store authentication data
+          localStorage.setItem('authToken', accessToken);
+          localStorage.setItem('user', JSON.stringify(user));
+          if (expiresIn) {
+            localStorage.setItem('tokenExpiry', new Date(Date.now() + this.parseExpiryTime(expiresIn)).toISOString());
+          }
+
+          // Note: refresh token is stored as httpOnly cookie by backend; do not store it in localStorage
+          return { success: true, user, token: accessToken };
+        }
+        return { success: false, message: response.message || 'Login failed' };
       }
       
       return { success: false, message: response.message || 'Login failed' };
@@ -35,14 +42,15 @@ class AuthService {
       const response = await api.post(endpoints.auth.register, userData);
       
       if (response.success && response.data) {
-        const { user, accessToken, refreshToken } = response.data;
-        
-        // Store authentication data
-        localStorage.setItem('authToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('user', JSON.stringify(user));
-        
-        return { success: true, user, token: accessToken };
+        const { user } = response.data;
+        const accessToken = response.data?.token || response.data?.accessToken || null;
+
+        if (accessToken) {
+          localStorage.setItem('authToken', accessToken);
+          localStorage.setItem('user', JSON.stringify(user));
+          return { success: true, user, token: accessToken };
+        }
+        return { success: false, message: response.message || 'Registration failed' };
       }
       
       return { success: false, message: response.message || 'Registration failed' };
@@ -195,17 +203,18 @@ class AuthService {
       const response = await api.post(endpoints.auth.setupMaster, userData);
       
       if (response.success && response.data) {
-        const { user, accessToken, refreshToken, expiresIn } = response.data;
-        
-        // Store authentication data
-        localStorage.setItem('authToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken || '');
-        localStorage.setItem('user', JSON.stringify(user));
-        if (expiresIn) {
-          localStorage.setItem('tokenExpiry', new Date(Date.now() + this.parseExpiryTime(expiresIn)).toISOString());
+        const { user, expiresIn } = response.data;
+        const accessToken = response.data?.token || response.data?.accessToken || null;
+
+        if (accessToken) {
+          localStorage.setItem('authToken', accessToken);
+          localStorage.setItem('user', JSON.stringify(user));
+          if (expiresIn) {
+            localStorage.setItem('tokenExpiry', new Date(Date.now() + this.parseExpiryTime(expiresIn)).toISOString());
+          }
+          return { success: true, user, token: accessToken };
         }
-        
-        return { success: true, user, token: accessToken };
+        return { success: response.success, message: response.message || 'Setup failed' };
       }
       
       return { 

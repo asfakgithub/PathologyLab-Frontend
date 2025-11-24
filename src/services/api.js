@@ -13,6 +13,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true // allow httpOnly refresh cookie to be sent
 });
 
 // Request interceptor to add auth token
@@ -35,22 +36,50 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    const originalRequest = error.config;
+
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
-      
+
+      // Attempt token refresh on 401 once
+      if (status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+        return api.post(endpoints.auth.refreshToken, {}, { withCredentials: true })
+          .then(res => {
+            const newToken = res?.data?.token || res?.token || res?.data?.accessToken || null;
+            if (newToken) {
+              localStorage.setItem('authToken', newToken);
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+              return api(originalRequest);
+            }
+
+            // If refresh failed to return token, clear and redirect
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            if (!window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+          })
+          .catch(err => {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            if (!window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+            return Promise.reject(err);
+          });
+      }
+
       if (status === 401) {
-        // Token expired or invalid
+        // Token expired or invalid and retry not possible
         localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        
-        // Redirect to login if not already there
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }
       }
-      
+
       // Return structured error
       return Promise.reject({
         message: data?.message || 'An error occurred',
@@ -149,7 +178,7 @@ export const endpoints = {
   },
 
   // Invoices
-  invoices: {
+          invoices: {
     list: '/invoices',
     create: '/invoices',
     getById: (id) => `/invoices/${id}`,

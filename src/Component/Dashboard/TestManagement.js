@@ -31,7 +31,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import ScienceIcon from '@mui/icons-material/Science';
-import RemoveIcon from '@mui/icons-material/Remove';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 function TestManagement() {
@@ -209,6 +208,19 @@ function TestManagement() {
     setParameterForm({ ...parameterForm, [field]: { ...parameterForm[field], [subfield]: value } });
   };
 
+  const handleExistingParameterChange = (index, field, value) => {
+    setForm(prevForm => {
+      const updatedParameters = [...prevForm.parameters];
+      updatedParameters[index] = { ...updatedParameters[index], [field]: value };
+      return { ...prevForm, parameters: updatedParameters };
+    });
+  };
+
+  const handleExistingParameterRangeChange = (index, subfield, value) => {
+    const updatedParameters = [...form.parameters];
+    updatedParameters[index].normalRange = { ...updatedParameters[index].normalRange, [subfield]: value };
+    setForm({ ...form, parameters: updatedParameters });
+  };
   // Add parameter to test
   const addParameter = () => {
     if (!parameterForm.name.trim()) {
@@ -698,76 +710,86 @@ function TestManagement() {
           {form.parameters.length > 0 && (
             <Box sx={{ mb: 3 }}>
               {form.parameters.map((param, index) => (
-                <Card key={index} sx={{ mb: 2, bgcolor: 'grey.50' }}>
+                <Card key={param._id || index} sx={{ mb: 2, bgcolor: 'grey.50', p: 2 }}>
                   <CardContent>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                       <Typography variant="subtitle1" fontWeight="bold">
-                        {param.name}
+                        Editing Parameter: {param.name}
                       </Typography>
                       <IconButton 
                         color="error" 
                         onClick={() => removeParameter(index)}
                         size="small"
                       >
-                        <RemoveIcon />
+                        <DeleteIcon />
                       </IconButton>
                     </Box>
                     
-                    <Grid container spacing={1}>
-                      {param.unit && (
-                        <Grid item xs={6} sm={3}>
-                          <Typography variant="body2">
-                            <strong>Unit:</strong> {param.unit}
-                          </Typography>
-                        </Grid>
-                      )}
-                      {param.referenceRange && (
-                        <Grid item xs={6} sm={3}>
-                          <Typography variant="body2">
-                            <strong>Reference:</strong> {param.referenceRange}
-                          </Typography>
-                        </Grid>
-                      )}
-                      {param.method && (
-                        <Grid item xs={6} sm={3}>
-                          <Typography variant="body2">
-                            <strong>Method:</strong> {param.method}
-                          </Typography>
-                        </Grid>
-                      )}
-                      {param.price && (
-                        <Grid item xs={6} sm={3}>
-                          <Typography variant="body2">
-                            <strong>Price:</strong> ₹{param.price}
-                          </Typography>
-                        </Grid>
-                      )}
-                      {param.normalRange?.adult && (
-                        <Grid item xs={6} sm={6}>
-                          <Typography variant="body2">
-                            <strong>Adult Range:</strong> {param.normalRange.adult}
-                          </Typography>
-                        </Grid>
-                      )}
-                      {param.normalRange?.child && (
-                        <Grid item xs={6} sm={6}>
-                          <Typography variant="body2">
-                            <strong>Child Range:</strong> {param.normalRange.child}
-                          </Typography>
-                        </Grid>
-                      )}
-                      {param.fastingRequired && (
-                        <Grid item xs={12}>
-                          <Chip label="Fasting Required" size="small" color="warning" />
-                        </Grid>
-                      )}
-                      {param.instructions && (
-                        <Grid item xs={12}>
-                          <Typography variant="body2">
-                            <strong>Instructions:</strong> {param.instructions}
-                          </Typography>
-                        </Grid>
-                      )}
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField fullWidth label="Parameter Name *" name="name" value={param.name} onChange={(e) => handleExistingParameterChange(index, 'name', e.target.value)} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField fullWidth label="Unit" name="unit" value={param.unit} onChange={(e) => handleExistingParameterChange(index, 'unit', e.target.value)} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField fullWidth label="Reference Range" name="referenceRange" value={param.referenceRange} onChange={(e) => handleExistingParameterChange(index, 'referenceRange', e.target.value)} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField fullWidth label="Method" name="method" value={param.method} onChange={(e) => handleExistingParameterChange(index, 'method', e.target.value)} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Price"
+                          name="price"
+                          type="number"
+                          value={param.price}
+                          onChange={(e) => handleExistingParameterChange(index, 'price', e.target.value)}
+                          InputProps={{
+                            startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              name="fastingRequired"
+                              checked={param.fastingRequired || false}
+                              onChange={(e) => handleExistingParameterChange(index, 'fastingRequired', e.target.checked)}
+                            />
+                          }
+                          label="Fasting Required"
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          label="Instructions"
+                          name="instructions"
+                          multiline
+                          rows={2}
+                          value={param.instructions}
+                          onChange={(e) => handleExistingParameterChange(index, 'instructions', e.target.value)}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Adult Normal Range"
+                          value={param.normalRange?.adult || ''}
+                          onChange={(e) => handleExistingParameterRangeChange(index, 'adult', e.target.value)}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Child Normal Range"
+                          value={param.normalRange?.child || ''}
+                          onChange={(e) => handleExistingParameterRangeChange(index, 'child', e.target.value)}
+                        />
+                      </Grid>
                     </Grid>
                   </CardContent>
                 </Card>
