@@ -34,7 +34,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Delete as DeleteIcon, Save as SaveIcon } from '@mui/icons-material';
-import { searchTests, createPatient, updatePatient } from '../../services/api';
+import { searchTests, createPatient, updatePatient, getTest } from '../../services/api';
 import { invoiceService } from '../../services/invoiceService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { debounce } from '@mui/material/utils';
@@ -145,24 +145,59 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
           medicalHistoryString = parts.join(' | ');
         }
 
-        setFormData({
-          name: patient.name || '',
-          age: patient.age || '',
-          gender: patient.gender || 'Male',
-          mobileNo: patient.mobileNo || '',
-          email: patient.email || '',
-          address: patient.address || { street: '', city: '', state: '', zipCode: '', country: '' },
-          bloodGroup: patient.bloodGroup || '',
-          allergies: allergiesString,
-          medicalHistory: medicalHistoryString,
-          doctorName: patient.doctorName || patient.doctor || patient.examinedByName || '',
-          referredBy: patient.referredBy || '',
-          selectedTests: patient.tests ? patient.tests.map(t => ({...t, _id: t.testId, selectedSubtests: t.selectedSubtests || []})) : [],
-          discountAmount: 0,
-          gstPercentage: 18,
-          additionalCharges: 0,
-          notes: ''
-        });
+        // Enrich patient's tests with full test details (parameters/subtests)
+        const prepareFormWithPatient = async () => {
+          let enrichedTests = [];
+          if (patient.tests && patient.tests.length) {
+            enrichedTests = await Promise.all(patient.tests.map(async (t) => {
+              try {
+                const testDetailResp = await getTest(t.testId);
+                // unwrap responses that use a wrapper { status, message, data }
+                const testDetail = testDetailResp && (testDetailResp.data || testDetailResp);
+
+                // Normalize selected subtests saved on patient (may use subtestId)
+                const selSubtests = (t.selectedSubtests || []).map(st => ({
+                  _id: st.subtestId || st._id || st.id,
+                  name: st.subtestName || st.name,
+                  price: st.price || 0
+                }));
+
+                // Ensure testDetail has expected fields (name, code, price, parameters)
+                const testObj = testDetail && typeof testDetail === 'object'
+                  ? testDetail
+                  : { _id: t.testId, name: t.testName || '', code: t.testCode || '', price: t.price || 0, parameters: [] };
+
+                // Attach selectedSubtests and keep original _id shape
+                return { ...testObj, _id: testObj._id || t.testId, selectedSubtests: selSubtests };
+              } catch (err) {
+                // Fallback to minimal info if fetch fails
+                const selSubtests = (t.selectedSubtests || []).map(st => ({ _id: st.subtestId || st._id || st.id, name: st.subtestName || st.name, price: st.price || 0 }));
+                return { _id: t.testId, name: t.testName || '', code: t.testCode || '', price: t.price || 0, parameters: [], selectedSubtests: selSubtests };
+              }
+            }));
+          }
+
+          setFormData({
+            name: patient.name || '',
+            age: patient.age || '',
+            gender: patient.gender || 'Male',
+            mobileNo: patient.mobileNo || '',
+            email: patient.email || '',
+            address: patient.address || { street: '', city: '', state: '', zipCode: '', country: '' },
+            bloodGroup: patient.bloodGroup || '',
+            allergies: allergiesString,
+            medicalHistory: medicalHistoryString,
+            doctorName: patient.doctorName || patient.doctor || patient.examinedByName || '',
+            referredBy: patient.referredBy || '',
+            selectedTests: enrichedTests,
+            discountAmount: 0,
+            gstPercentage: 18,
+            additionalCharges: 0,
+            notes: ''
+          });
+        };
+
+        prepareFormWithPatient();
         setCreateInvoice(true);
       } else {
         resetForm();
