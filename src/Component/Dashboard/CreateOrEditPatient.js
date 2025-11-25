@@ -38,8 +38,10 @@ import { searchTests, createPatient, updatePatient, getTest } from '../../servic
 import { invoiceService } from '../../services/invoiceService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { debounce } from '@mui/material/utils';
+import useSystemNotification from '../../core/hooks/useSystemNotification';
 
 const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSuccess, onError }) => {
+  const { sendSystemNotification } = useSystemNotification();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [createInvoice, setCreateInvoice] = useState(true);
@@ -350,8 +352,22 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
 
       if (!invoiceMode && patient) {
         await updatePatient(patient._id, patientData);
+        try {
+          await sendSystemNotification({
+            message: `Patient details for ${patientData.name} have been updated.`
+          });
+        } catch (notificationError) {
+          console.error('Failed to send patient update notification:', notificationError);
+        }
       } else if (!invoiceMode && !patient) {
         await createPatient(patientData);
+        try {
+          await sendSystemNotification({
+            message: `New patient ${patientData.name} has been created.`
+          });
+        } catch (notificationError) {
+          console.error('Failed to send patient creation notification:', notificationError);
+        }
       }
 
       if (createInvoice && formData.selectedTests.length > 0) {
@@ -382,6 +398,13 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
         };
 
         await invoiceService.createInvoice(invoiceData);
+        try {
+          await sendSystemNotification({
+            message: `New invoice created for patient ${formData.name}.`
+          });
+        } catch (notificationError) {
+          console.error('Failed to send invoice creation notification:', notificationError);
+        }
       }
 
       onSuccess && onSuccess();

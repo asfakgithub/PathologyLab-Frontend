@@ -51,12 +51,17 @@ import {
   Person as PersonIcon,
   Save as SaveIcon
 } from '@mui/icons-material';
+import { InfoOutlined as InfoIcon } from '@mui/icons-material';
 import { invoiceService } from '../../services/invoiceService';
-import { getTests } from '../../services/api';
+import { getTests, getUsers } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
+import useSystemNotification from '../../core/hooks/useSystemNotification';
 
 const InvoiceManagementNew = () => {
+  const { sendSystemNotification } = useSystemNotification();
   const [invoices, setInvoices] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [selectedRecipient, setSelectedRecipient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -72,6 +77,7 @@ const InvoiceManagementNew = () => {
   // Fetch invoices on component mount
   useEffect(() => {
     fetchInvoices();
+    fetchUsers();
   }, []);
 
   const fetchInvoices = async () => {
@@ -85,6 +91,18 @@ const InvoiceManagementNew = () => {
       setError('Failed to fetch invoices: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await getUsers();
+      const usersData = (res?.data || res) || [];
+      // prefer doctors/admins for recipient selection
+      const filtered = usersData.filter(u => ['doctor', 'admin', 'master', 'compounder'].includes(u.role));
+      setUsers(filtered);
+    } catch (err) {
+      console.error('Failed to fetch users for recipient selector:', err);
     }
   };
 
@@ -106,7 +124,19 @@ const InvoiceManagementNew = () => {
   const handleDeleteInvoice = async (invoiceId) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       try {
+        const invoiceToDelete = invoices.find(inv => inv.invoiceId === invoiceId);
         await invoiceService.deleteInvoice(invoiceId);
+        if (invoiceToDelete) {
+              try {
+              await sendSystemNotification({
+                message: `Invoice ${invoiceToDelete.invoiceNumber || invoiceToDelete.invoiceId || invoiceToDelete.invoiceId} for patient ${invoiceToDelete.patientName || invoiceToDelete.patientId || 'Unknown'} has been deleted.`,
+                recipient: selectedRecipient?._id,
+                recipientEmail: selectedRecipient?.email
+              });
+            } catch (notificationError) {
+              console.error('Failed to send invoice deletion notification:', notificationError);
+            }
+        }
         setSuccess('Invoice deleted successfully');
         fetchInvoices();
       } catch (error) {
@@ -132,7 +162,7 @@ const InvoiceManagementNew = () => {
 
   const filteredInvoices = invoices.filter(invoice =>
     invoice.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (invoice.invoiceNumber || invoice.invoiceId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -149,14 +179,33 @@ const InvoiceManagementNew = () => {
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
           Invoice Management
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateInvoice}
-          sx={{ borderRadius: 2 }}
-        >
-          Create Invoice
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Autocomplete
+              options={users}
+              getOptionLabel={(option) => option?.name || option?.email || option?.firstName || ''}
+              value={selectedRecipient}
+              onChange={(e, newVal) => setSelectedRecipient(newVal)}
+              sx={{ width: 300 }}
+              renderInput={(params) => (
+                <TextField {...params} label="Notify Recipient (optional)" size="small" />
+              )}
+            />
+            <Tooltip title="If no recipient is chosen, the message will be delivered to an admin/master user by default.">
+              <IconButton size="small" aria-label="recipient-info">
+                <InfoIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateInvoice}
+            sx={{ borderRadius: 2 }}
+          >
+            Create Invoice
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -238,7 +287,7 @@ const InvoiceManagementNew = () => {
                 <TableRow key={invoice._id} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight="bold">
-                      {invoice.invoiceNumber}
+                      {invoice.invoiceNumber || invoice.invoiceId}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {invoice.invoiceId}
@@ -345,6 +394,7 @@ const InvoiceManagementNew = () => {
         open={openDialog}
         onClose={() => setOpenDialog(false)}
         invoice={editingInvoice}
+        selectedRecipient={selectedRecipient}
         onSuccess={() => {
           setOpenDialog(false);
           fetchInvoices();
@@ -365,6 +415,7 @@ const InvoiceManagementNew = () => {
         open={paymentDialog}
         onClose={() => setPaymentDialog(false)}
         invoice={selectedInvoice}
+        selectedRecipient={selectedRecipient}
         onSuccess={() => {
           setPaymentDialog(false);
           fetchInvoices();
@@ -377,7 +428,8 @@ const InvoiceManagementNew = () => {
 };
 
 // Invoice Form Dialog Component
-const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
+const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selectedRecipient }) => {
+  const { sendSystemNotification } = useSystemNotification();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [tests, setTests] = useState([]);
@@ -460,8 +512,26 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
       
       if (invoice) {
         await invoiceService.updateInvoice(invoice.invoiceId, formData);
+        try {
+          await sendSystemNotification({
+            message: `Invoice ${formData.invoiceNumber} for patient ${formData.patientName} has been updated.`,
+            recipient: selectedRecipient?._id,
+            recipientEmail: selectedRecipient?.email
+          });
+        } catch (notificationError) {
+          console.error('Failed to send invoice update notification:', notificationError);
+        }
       } else {
         await invoiceService.createInvoice(formData);
+        try {
+          await sendSystemNotification({
+            message: `New invoice for patient ${formData.patientName} has been created.`,
+            recipient: selectedRecipient?._id,
+            recipientEmail: selectedRecipient?.email
+          });
+        } catch (notificationError) {
+          console.error('Failed to send invoice creation notification:', notificationError);
+        }
       }
       
       onSuccess();
@@ -522,7 +592,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
+                  <DialogTitle>
         {invoice ? 'Edit Invoice' : 'Create New Invoice'}
       </DialogTitle>
       <DialogContent>
@@ -790,7 +860,7 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        Invoice Details - {invoice.invoiceNumber}
+        Invoice Details - {invoice.invoiceNumber || invoice.invoiceId}
       </DialogTitle>
       <DialogContent>
         <Grid container spacing={3}>
@@ -816,7 +886,7 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                   Invoice Information
                 </Typography>
                 <Typography variant="body2"><strong>Invoice ID:</strong> {invoice.invoiceId}</Typography>
-                <Typography variant="body2"><strong>Invoice Number:</strong> {invoice.invoiceNumber}</Typography>
+                <Typography variant="body2"><strong>Invoice Number:</strong> {invoice.invoiceNumber || invoice.invoiceId}</Typography>
                 <Typography variant="body2"><strong>Date:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</Typography>
                 <Typography variant="body2"><strong>Status:</strong> 
                   <Chip 
@@ -913,7 +983,8 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
 };
 
 // Payment Dialog Component
-const PaymentDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
+const PaymentDialog = ({ open, onClose, invoice, onSuccess, onError, selectedRecipient }) => {
+  const { sendSystemNotification } = useSystemNotification();
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loading, setLoading] = useState(false);
@@ -925,7 +996,7 @@ const PaymentDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
   }, [invoice, open]);
 
   const handlePayment = async () => {
-    try {
+      try {
       setLoading(true);
       const amount = parseFloat(paymentAmount);
       
@@ -939,6 +1010,16 @@ const PaymentDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
         method: paymentMethod
       });
 
+      try {
+        await sendSystemNotification({
+          message: `A payment of ₹${amount} was added to invoice ${invoice.invoiceNumber || invoice.invoiceId || invoice._id} for patient ${invoice.patientName || invoice.patientId || 'Unknown'}.`,
+          recipient: selectedRecipient?._id,
+          recipientEmail: selectedRecipient?.email
+        });
+      } catch (notificationError) {
+        console.error('Failed to send payment notification:', notificationError);
+      }
+
       onSuccess();
     } catch (error) {
       onError('Failed to process payment: ' + error.message);
@@ -951,7 +1032,7 @@ const PaymentDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add Payment - {invoice.invoiceNumber}</DialogTitle>
+      <DialogTitle>Add Payment - {invoice.invoiceNumber || invoice.invoiceId || invoice._id}</DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={2}>

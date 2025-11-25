@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import patientService from '../../services/patientService';
 import { useNavigate } from 'react-router-dom';
+import useSystemNotification from '../../core/hooks/useSystemNotification';
+
 const ViewPatient = (props) => {
+  const { sendSystemNotification } = useSystemNotification();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [patient, setPatient] = useState(null);
@@ -203,6 +206,13 @@ const navigate = useNavigate();
       setLoading(true);
       await patientService.updatePatient(patientId, patient);
       alert('Patient info saved');
+      try {
+        await sendSystemNotification({
+          message: `Patient details for ${patient.name} have been updated.`
+        });
+      } catch (notificationError) {
+        console.error('Failed to send patient update notification:', notificationError);
+      }
     } catch (err) {
       alert('Failed to save patient: ' + (err.message || JSON.stringify(err)));
     } finally {
@@ -250,6 +260,13 @@ const navigate = useNavigate();
 
       await Promise.all(calls);
       alert('Results saved');
+      try {
+        await sendSystemNotification({
+          message: `Test results for patient ${patient.name} have been saved.`
+        });
+      } catch (notificationError) {
+        console.error('Failed to send test results saved notification:', notificationError);
+      }
     } catch (err) {
       alert('Failed to save results: ' + (err.message || JSON.stringify(err)));
     } finally {

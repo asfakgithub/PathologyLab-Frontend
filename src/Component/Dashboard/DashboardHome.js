@@ -27,7 +27,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
-// import { getDashboardStats } from '../../services/api';
+import api, { getPatientStats, getReportStats, getInvoiceStats, getPatients, getReports } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const StatCard = ({ title, value, icon, color, change, changeText }) => (
@@ -173,7 +173,7 @@ const DashboardHome = () => {
   const [stats, setStats] = useState({
     patients: { total: 0, change: 0 },
     tests: { total: 0, change: 0 },
-    invoices: { total: 0, change: 0 },
+    invoices: { total: 0, totalAmount: 0, totalDue: 0, pendingCount: 0, change: 0 },
     revenue: { total: 0, change: 0 }
   });
   const [recentActivities, setRecentActivities] = useState([]);
@@ -187,13 +187,56 @@ const DashboardHome = () => {
     try {
       setLoading(true);
       setError(null);
-      
-        // const response = await getDashboardStats();
-        // if (response.data.success) {
-        //   setStats(response.data.data.stats);
-        //   setRecentActivities(response.data.data.recentActivities || []);
-        //   setTestStats(response.data.data.testStats || {});
-        // }
+      // Fetch multiple stats in parallel
+      const [pStatRes, rStatRes, invStatRes, recentPatientsRes, recentReportsRes, messagesRes] = await Promise.all([
+        getPatientStats().catch(e => ({ data: {} })),
+        getReportStats().catch(e => ({ data: {} })),
+        getInvoiceStats().catch(e => ({ data: {} })),
+        getPatients({ page: 1, limit: 5 }).catch(e => ({ data: { data: [] } })),
+        getReports({ page: 1, limit: 5 }).catch(e => ({ data: { data: [] } })),
+        api.get('/messages', { params: { page: 1, limit: 1 } }).catch(e => ({ unreadCount: 0 }))
+      ]);
+
+      // Parse responses (api wrapper returns different shapes in some helpers)
+      const patientStats = pStatRes?.data?.stats || pStatRes?.stats || { total: 0 };
+      const reportStats = rStatRes?.data?.stats || rStatRes?.stats || {};
+      const invoiceStats = invStatRes?.data?.stats || invStatRes?.stats || { totalInvoices: 0, totalAmount: 0 };
+      const recentPatients = recentPatientsRes?.data?.data || recentPatientsRes?.data || [];
+      const recentReports = recentReportsRes?.data?.data || recentReportsRes?.data || [];
+      const unreadMessages = messagesRes?.unreadCount ?? messagesRes?.data?.unreadCount ?? 0;
+
+      setStats({
+        patients: { total: patientStats.totalPatients ?? patientStats.total ?? 0, change: patientStats.change ?? 0 },
+        tests: { total: reportStats.total ?? reportStats.totalReports ?? 0, change: reportStats.change ?? 0 },
+        invoices: {
+          total: invoiceStats.totalInvoices ?? invoiceStats.total ?? 0,
+          totalAmount: invoiceStats.totalAmount ?? 0,
+          totalPaid: invoiceStats.totalPaid ?? 0,
+          totalDue: invoiceStats.totalDue ?? 0,
+          pendingCount: invoiceStats.pendingInvoices ?? 0,
+          change: invoiceStats.change ?? 0
+        },
+        revenue: { total: invoiceStats.totalAmount ?? 0, change: invoiceStats.revenueChange ?? 0 }
+      });
+
+      // Build recent activities from recent patients/reports/invoices
+      const activities = [];
+      recentPatients.forEach(p => activities.push({ type: 'patient', description: `New patient: ${p.name || p.patientName || p.patientId || p.phone || 'Unknown'}`, timestamp: new Date(p.createdAt || p.createdAt).toLocaleString(), status: 'completed' }));
+      recentReports.forEach(r => activities.push({ type: 'test', description: `Report: ${r.title || r.reportId || r._id}`, timestamp: new Date(r.createdAt || r.createdAt).toLocaleString(), status: r.status || 'pending' }));
+
+      setRecentActivities(activities.slice(0, 10));
+
+      // testStats: use reportStats breakdown if available
+      const testOverview = {
+        completed: { count: reportStats.completed ?? 0, percentage: reportStats.total ? Math.round(((reportStats.completed || 0) / reportStats.total) * 100) : 0 },
+        pending: { count: reportStats.pending ?? 0, percentage: reportStats.total ? Math.round(((reportStats.pending || 0) / reportStats.total) * 100) : 0 },
+        in_progress: { count: reportStats.in_progress ?? 0, percentage: reportStats.total ? Math.round(((reportStats.in_progress || 0) / reportStats.total) * 100) : 0 }
+      };
+
+      setTestStats(testOverview);
+
+      // set unread messages as an analytic card
+      setStats(prev => ({ ...prev, messages: { total: unreadMessages, change: 0 } }));
     } catch (err) {
       console.error('Dashboard data fetch error:', err);
       setError('Failed to load dashboard data');
@@ -292,16 +335,42 @@ const DashboardHome = () => {
             />
           </Grid>
         )}
-        
-        {hasAnyRole(['master', 'admin']) && (
+
+        {hasAnyRole(['master', 'admin', 'receptionist']) && (
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
-              title="Revenue"
-              value={`$${(stats.revenue.total / 1000).toFixed(1)}K`}
+              title="Total Invoice Value"
+              value={`₹${(stats.invoices.totalAmount || 0).toLocaleString()}`}
               icon={<TrendingUpIcon />}
-              color="#9c27b0"
-              change={stats.revenue.change}
-              changeText="this month"
+              color="#6a1b9a"
+              change={0}
+              changeText=""
+            />
+          </Grid>
+        )}
+
+        {hasAnyRole(['master', 'admin', 'receptionist']) && (
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Total Due"
+              value={`₹${(stats.invoices.totalDue || 0).toLocaleString()}`}
+              icon={<ScheduleIcon />}
+              color="#d32f2f"
+              change={0}
+              changeText=""
+            />
+          </Grid>
+        )}
+
+        {hasAnyRole(['master', 'admin', 'receptionist']) && (
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Pending Invoices"
+              value={(stats.invoices.pendingCount || 0).toLocaleString()}
+              icon={<PendingIcon />}
+              color="#ff9800"
+              change={0}
+              changeText=""
             />
           </Grid>
         )}

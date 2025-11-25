@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Drawer,
@@ -25,14 +25,15 @@ import {
   Science as ScienceIcon,
   Receipt as ReceiptIcon,
   Settings as SettingsIcon,
-  Analytics as AnalyticsIcon,
   Assessment as ReportsIcon,
   AccountCircle,
   Logout,
   Notifications,
-  Person
+  Person,
+  Message
 } from '@mui/icons-material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 const drawerWidth = 280;
@@ -44,6 +45,7 @@ const Dashboard = () => {
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [messageCount, setMessageCount] = useState(0);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -56,6 +58,29 @@ const Dashboard = () => {
   const handleProfileMenuClose = () => {
     setAnchorEl(null);
   };
+
+  // Fetch unread message count and poll periodically
+  useEffect(() => {
+    let mounted = true;
+    const fetchCounts = async () => {
+      try {
+        // We only need counts; limit=1 to keep payload small. Backend returns readCount/unreadCount.
+        const res = await api.get('/messages', { params: { page: 1, limit: 1 } });
+        if (!mounted) return;
+        const unread = res?.unreadCount ?? 0;
+        setMessageCount(unread);
+      } catch (err) {
+        console.error('Failed to fetch message counts:', err);
+      }
+    };
+
+    fetchCounts();
+    const id = setInterval(fetchCounts, 60000); // refresh every 60s
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, []);
 
   const handleLogout = async () => {
     handleProfileMenuClose();
@@ -100,8 +125,8 @@ const Dashboard = () => {
       roles: ['master', 'admin', 'receptionist']
     },
     {
-      text: 'Analytics',
-      icon: <AnalyticsIcon />,
+      text: 'Message',
+      icon: <Message/>,
       path: '/dashboard/analytics',
       roles: ['master', 'admin']
     },
@@ -233,8 +258,8 @@ const Dashboard = () => {
           </Typography>
 
           {/* Notifications */}
-          <IconButton color="inherit" sx={{ mr: 1 }}>
-            <Badge badgeContent={3} color="error">
+          <IconButton color="inherit" sx={{ mr: 1 }} onClick={() => navigate('/dashboard/analytics')}>
+            <Badge badgeContent={messageCount} color="error">
               <Notifications />
             </Badge>
           </IconButton>

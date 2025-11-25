@@ -1,0 +1,10 @@
+.messages-root { padding: 16px; }
+.messages-paper { padding: 16px; }
+.messages-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.messages-controls { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap }
+.messages-summary { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px }
+.messages-list { max-height: 60vh; overflow:auto }
+.message-preview { display:block; color:rgba(0,0,0,0.7); max-width:520px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.message-unread { background: linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(245,248,255,1) 100%); }
+.message-read { background: transparent; }
+.messages-pagination { display:flex; align-items:center; justify-content:center; gap:12px; padding:12px 0 }

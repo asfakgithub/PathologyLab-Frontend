@@ -15,6 +15,7 @@ import ReportManagementEnhanced from './Component/Pages/ReportPage/ReportManagem
 import SettingsManagementEnhanced from './Component/Pages/SettingsPage/SettingsManagementEnhanced';
 import TestManagement from './Component/Dashboard/TestManagement';
 import LoadingSpinner from './Component/common/LoadingSpinner';
+import Messages from './Component/Dashboard/Messages';
 
 // Report Components
 import ReportForm from './Component/Pages/ReportPage/ReportForm';
@@ -223,10 +224,9 @@ function AppContent() {
                 path="analytics" 
                 element={
                   <ProtectedRoute allowedRoles={["master", "admin"]}>
-                    <div style={{ padding: '20px' }}>
-                      <h2>Analytics Dashboard</h2>
-                      <p>Analytics dashboard coming soon...</p>
-                    </div>
+                    <React.Suspense fallback={<LoadingSpinner />}>
+                      <Messages />
+                    </React.Suspense>
                   </ProtectedRoute>
                 } 
               />
