@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -30,18 +30,25 @@ import {
   Divider,
   InputAdornment,
   Checkbox,
-  FormGroup
+  FormGroup,
+  CircularProgress
 } from '@mui/material';
 import { Delete as DeleteIcon, Save as SaveIcon } from '@mui/icons-material';
-import { getTests, createPatient, updatePatient } from '../../services/api';
+import { searchTests, createPatient, updatePatient } from '../../services/api';
 import { invoiceService } from '../../services/invoiceService';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { debounce } from '@mui/material/utils';
 
 const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSuccess, onError }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [tests, setTests] = useState([]);
   const [createInvoice, setCreateInvoice] = useState(true);
+
+  // State for the new test search autocomplete
+  const [testSearchInput, setTestSearchInput] = useState('');
+  const [testOptions, setTestOptions] = useState([]);
+  const [testSearchLoading, setTestSearchLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
     age: '',
@@ -61,13 +68,74 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
     notes: ''
   });
 
+  const fetchTestsForAutocomplete = useMemo(
+    () =>
+      debounce(async (request, callback) => {
+        try {
+          const response = await searchTests(request.input);
+          const testsData = response.data || [];
+          callback(testsData);
+        } catch (error) {
+          console.error('Failed to search tests:', error);
+          callback([]);
+        }
+      }, 400),
+    [],
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    if (testSearchInput === '') {
+      setTestOptions([]);
+      return undefined;
+    }
+
+    setTestSearchLoading(true);
+    fetchTestsForAutocomplete({ input: testSearchInput }, (results) => {
+      if (active) {
+        let newOptions = [];
+        if (results) {
+          // Flatten tests and subtests into a single list for autocomplete
+          results.forEach(test => {
+            // Add the main test
+            newOptions.push({
+              id: test._id,
+              label: `${test.name} (${test.code})`,
+              category: test.category,
+              isTest: true,
+              test: test
+            });
+            // Add subtests
+            if (test.parameters && test.parameters.length > 0) {
+              test.parameters.forEach(param => {
+                newOptions.push({
+                  id: `${test._id}-${param._id}`,
+                  label: `${test.name} > ${param.name}`,
+                  category: test.category,
+                  isTest: false,
+                  test: test,
+                  subtest: param
+                });
+              });
+            }
+          });
+        }
+        setTestOptions(newOptions);
+        setTestSearchLoading(false);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [testSearchInput, fetchTestsForAutocomplete]);
+
+
   useEffect(() => {
     if (open) {
-      fetchTests();
       if (patient) {
-        // Map patient model to form fields (medicalHistory in backend is nested)
         const allergiesString = patient.allergies || (patient.medicalHistory && Array.isArray(patient.medicalHistory.allergies) ? patient.medicalHistory.allergies.join(', ') : '');
-        // Create a readable medicalHistory summary if available
         let medicalHistoryString = '';
         if (patient.medicalHistory) {
           const parts = [];
@@ -87,16 +155,14 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
           bloodGroup: patient.bloodGroup || '',
           allergies: allergiesString,
           medicalHistory: medicalHistoryString,
-          // pre-fill doctorName and referredBy when available on patient
           doctorName: patient.doctorName || patient.doctor || patient.examinedByName || '',
           referredBy: patient.referredBy || '',
-          selectedTests: [],
+          selectedTests: patient.tests ? patient.tests.map(t => ({...t, _id: t.testId, selectedSubtests: t.selectedSubtests || []})) : [],
           discountAmount: 0,
           gstPercentage: 18,
           additionalCharges: 0,
           notes: ''
         });
-        // Keep test selection visible for both create and edit (always 5 steps)
         setCreateInvoice(true);
       } else {
         resetForm();
@@ -104,38 +170,6 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
     }
   }, [open, patient, invoiceMode]);
 
-  const fetchTests = async () => {
-    try {
-      const response = await getTests();
-      const testsData = response.data?.data || response.data || [];
-      setTests(testsData);
-    } catch (err) {
-      console.error('Failed to fetch tests:', err);
-    }
-  };
-
-  // When tests are loaded and we're editing a patient, pre-populate selectedTests
-  useEffect(() => {
-    if (!open || !patient || !tests || tests.length === 0) return;
-    const selectedTests = (patient.tests || []).map(pt => {
-      // find matching master test by id
-      const master = tests.find(t => String(t._id) === String(pt.testId) || String(t._id) === String(pt.testId));
-      if (master) {
-        const selectedSubtests = (pt.selectedSubtests || []).map(s => {
-          const param = (master.parameters || []).find(p => String(p._id) === String(s.subtestId));
-          return param ? { ...param } : { _id: s.subtestId, name: s.subtestName, price: s.price };
-        });
-        return { ...master, selectedSubtests };
-      }
-      // fallback: construct basic test entry
-      return {
-        _id: pt.testId,
-        name: pt.testName,
-        selectedSubtests: (pt.selectedSubtests || []).map(s => ({ _id: s.subtestId, name: s.subtestName, price: s.price }))
-      };
-    });
-    setFormData(prev => ({ ...prev, selectedTests }));
-  }, [tests, open, patient]);
 
   const resetForm = () => {
     setFormData({
@@ -171,12 +205,36 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
     setFormData(prev => ({ ...prev, address: { ...prev.address, [field]: value } }));
   };
 
-  const handleTestSelect = (test) => {
-    if (!formData.selectedTests.find(t => t._id === test._id)) {
-      // add selectedSubtests array to track subtest selections
-      const newTest = { ...test, selectedSubtests: [] };
-      setFormData(prev => ({ ...prev, selectedTests: [...prev.selectedTests, newTest] }));
-    }
+  const handleTestSelection = (option) => {
+    if (!option) return;
+
+    const { test, subtest, isTest } = option;
+
+    setFormData(prev => {
+        let updatedSelectedTests = [...prev.selectedTests];
+        let testInSelection = updatedSelectedTests.find(t => t._id === test._id);
+
+        // If the parent test is not already selected, add it.
+        if (!testInSelection) {
+            testInSelection = { ...test, selectedSubtests: [] };
+            updatedSelectedTests.push(testInSelection);
+        }
+
+        // If a subtest was selected, ensure it's added to the parent test's subtest list.
+        if (!isTest && subtest) {
+            const subtestInSelection = testInSelection.selectedSubtests.some(st => st._id === subtest._id);
+            if (!subtestInSelection) {
+                testInSelection.selectedSubtests.push(subtest);
+            }
+        }
+        
+        // Return updated state
+        return { ...prev, selectedTests: updatedSelectedTests };
+    });
+
+    // Clear the search input after selection
+    setTestSearchInput('');
+    setTestOptions([]);
   };
 
   const toggleSubtest = (testId, subtest) => {
@@ -202,7 +260,6 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
 
   const calculateTotals = () => {
     const subtotal = formData.selectedTests.reduce((sum, test) => {
-      // if subtests selected, sum their prices, otherwise use test price
       if (test.selectedSubtests && test.selectedSubtests.length) {
         return sum + test.selectedSubtests.reduce((s, st) => s + (st.price || 0), 0);
       }
@@ -237,7 +294,6 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
         bloodGroup: formData.bloodGroup
       };
 
-      // Build medicalHistory object matching backend schema
       const medicalHistory = {
         allergies: (formData.allergies || '').split(',').map(s => s.trim()).filter(Boolean),
         medications: [],
@@ -245,17 +301,15 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
         previousSurgeries: []
       };
       if (formData.medicalHistory && formData.medicalHistory.trim()) {
-        // keep freeform text as a note inside medicalHistory
         medicalHistory.notes = formData.medicalHistory;
       }
       patientData.medicalHistory = medicalHistory;
 
-      // include selected tests in patientData to match backend model
       if (formData.selectedTests && formData.selectedTests.length) {
         patientData.tests = formData.selectedTests.map(t => ({
           testId: t._id || t.testId,
           testName: t.name,
-          selectedSubtests: (t.selectedSubtests || []).map(st => ({ subtestId: st._id, subtestName: st.name }))
+          selectedSubtests: (t.selectedSubtests || []).map(st => ({ subtestId: st._id, subtestName: st.name, price: st.price }))
         }));
       }
 
@@ -272,7 +326,6 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
           patientGender: formData.gender,
           patientPhone: formData.mobileNo,
           patientEmail: formData.email,
-          // Convert address object to a single string for the simple invoice model
           patientAddress: [formData.address.street, formData.address.city, formData.address.state, formData.address.zipCode, formData.address.country].filter(Boolean).join(', '),
           doctorName: formData.doctorName,
           referredBy: formData.referredBy,
@@ -354,7 +407,7 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
           </Step>
 
           <Step>
-            <StepLabel>Patient's Adress</StepLabel>
+            <StepLabel>Patient's Address</StepLabel>
             <StepContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12} sm={6}>
@@ -427,13 +480,60 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
                   <Grid item xs={12} sm={6}><TextField fullWidth label="Doctor Name" value={formData.doctorName} onChange={(e) => handleInputChange('doctorName', e.target.value)} /></Grid>
                   <Grid item xs={12} sm={6}><TextField fullWidth label="Referred By" value={formData.referredBy} onChange={(e) => handleInputChange('referredBy', e.target.value)} /></Grid>
                   <Grid item xs={12}>
-                    <Autocomplete options={tests} getOptionLabel={(option) => `${option.name} (${option.code}) - ₹${option.price}`} onChange={(e, value) => value && handleTestSelect(value)} renderInput={(params) => (<TextField {...params} label="Add Tests" placeholder="Search and select tests..." />)} />
+                  <Autocomplete
+                      id="test-search-autocomplete"
+                      options={testOptions}
+                      getOptionLabel={(option) => option.label || ''}
+                      filterOptions={(x) => x}
+                      autoComplete
+                      includeInputInList
+                      filterSelectedOptions
+                      value={null} // Controlled externally, cleared on select
+                      onChange={(event, newValue) => {
+                        handleTestSelection(newValue);
+                      }}
+                      onInputChange={(event, newInputValue) => {
+                        setTestSearchInput(newInputValue);
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Search and Add Tests"
+                          fullWidth
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <React.Fragment>
+                                {testSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                {params.InputProps.endAdornment}
+                              </React.Fragment>
+                            ),
+                          }}
+                        />
+                      )}
+                      renderOption={(props, option) => {
+                        return (
+                          <li {...props} key={option.id}>
+                            <Grid container alignItems="center">
+                              <Grid item xs>
+                                <Typography variant="body1" color={option.isTest ? "primary" : "textSecondary"}>
+                                  {option.label}
+                                </Typography>
+                                <Typography variant="caption" color="textSecondary">
+                                  Category: {option.category}
+                                </Typography>
+                              </Grid>
+                            </Grid>
+                          </li>
+                        );
+                      }}
+                    />
                   </Grid>
                   <Grid item xs={12}>
                     <Typography variant="h6" gutterBottom>Selected Tests</Typography>
                     <List>
                       {formData.selectedTests.map((test) => {
-                        const subtests = test.parameters || test.subtests || test.subTests || test.subtest || [];
+                        const subtests = test.parameters || test.subtests || [];
                         return (
                           <ListItem key={test._id} divider alignItems="flex-start">
                             <ListItemText
@@ -452,13 +552,12 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
                                             );
                                           })}
                                         </FormGroup>
-                                        {/* per-test subtotal (sum of selected subtests or test price) */}
                                         <Box sx={{ mt: 1 }}>
                                           <Typography variant="body2" color="textSecondary">
                                             {(() => {
                                               const subSel = test.selectedSubtests || [];
                                               const testTotal = subSel.length > 0 ? subSel.reduce((s, st) => s + (st.price || 0), 0) : (test.price || 0);
-                                              return `Test Total: ₹${testTotal.toFixed ? testTotal.toFixed(2) : Number(testTotal).toFixed(2)}`;
+                                              return `Test Total: ₹${Number(testTotal).toFixed(2)}`;
                                             })()}
                                           </Typography>
                                         </Box>

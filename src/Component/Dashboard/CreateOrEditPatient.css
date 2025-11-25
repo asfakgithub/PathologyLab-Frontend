@@ -1,0 +1,354 @@
+/* ==========================================================================
+   CreateOrEditPatient Component
+   ========================================================================== */
+
+/* Variables - A more modern and professional color palette
+   ========================================================================== */
+:root {
+  --pro-primary-color: #007bff; /* A vibrant, modern blue */
+  --pro-primary-hover-color: #0056b3;
+  --pro-text-color: #343a40;
+  --pro-text-secondary-color: #6c757d;
+  --pro-background-color: #ffffff;
+  --pro-card-background-color: #ffffff;
+  --pro-input-background-color: #f8f9fa;
+  --pro-border-color: #dee2e6;
+  --pro-border-light-color: #f1f3f5;
+  --pro-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --pro-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.06);
+  --pro-border-radius: 8px;
+  --pro-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Dialog Overlay
+   ========================================================================== */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+/* Dialog Container
+   ========================================================================== */
+.dialog-container {
+  background: var(--pro-background-color);
+  border-radius: var(--pro-border-radius);
+  width: 100%;
+  max-width: 980px;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--pro-shadow);
+  overflow: hidden;
+}
+
+/* Dialog Header
+   ========================================================================== */
+.dialog-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--pro-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--pro-text-color);
+}
+
+/* Dialog Content
+   ========================================================================== */
+.dialog-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+/* Dialog Actions
+   ========================================================================== */
+.dialog-actions {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--pro-border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background-color: var(--pro-input-background-color);
+}
+
+/* Stepper
+   ========================================================================== */
+.stepper {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.step-navigation {
+  flex: 0 0 200px;
+  border-right: 1px solid var(--pro-border-color);
+  padding-right: 1.5rem;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--pro-border-radius);
+  cursor: default;
+  transition: var(--pro-transition);
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--pro-border-light-color);
+  color: var(--pro-text-secondary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: var(--pro-transition);
+}
+
+.step-label {
+  font-size: 0.9rem;
+  color: var(--pro-text-secondary-color);
+  font-weight: 500;
+}
+
+.step.active .step-number {
+  background-color: var(--pro-primary-color);
+  color: var(--pro-background-color);
+  transform: scale(1.1);
+}
+
+.step.active .step-label {
+  color: var(--pro-text-color);
+  font-weight: 600;
+}
+
+.step-content {
+  flex-grow: 1;
+}
+
+/* Form Grid & Groups
+   ========================================================================== */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.col-12 { grid-column: span 12; }
+.col-6 { grid-column: span 6; }
+.col-4 { grid-column: span 4; }
+.col-3 { grid-column: span 3; }
+
+@media (max-width: 768px) {
+  .col-6, .col-4, .col-3 {
+    grid-column: span 12;
+  }
+  .stepper {
+    flex-direction: column;
+  }
+  .step-navigation {
+    border-right: none;
+    padding-right: 0;
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+  }
+}
+
+/* Form Elements
+   ========================================================================== */
+.form-group label {
+  font-size: 0.875rem;
+  color: var(--pro-text-secondary-color);
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--pro-border-color);
+  border-radius: var(--pro-border-radius);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: var(--pro-transition);
+  background-color: var(--pro-background-color);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--pro-primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  background-color: var(--pro-input-background-color);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Buttons
+   ========================================================================== */
+.btn {
+  padding: 0.65rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--pro-border-radius);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--pro-transition);
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary {
+  background-color: var(--pro-primary-color);
+  color: var(--pro-background-color);
+  box-shadow: var(--pro-shadow-sm);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--pro-primary-hover-color);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--pro-text-secondary-color);
+  border-color: var(--pro-border-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--pro-input-background-color);
+  border-color: var(--pro-text-secondary-color);
+  color: var(--pro-text-color);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.form-actions {
+  grid-column: span 12;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Review Section
+   ========================================================================== */
+.review-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.review-card {
+  border: 1px solid var(--pro-border-color);
+  border-radius: var(--pro-border-radius);
+  overflow: hidden;
+  background-color: var(--pro-card-background-color);
+}
+
+.card-title {
+  padding: 1rem 1.5rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--pro-primary-color);
+  background-color: var(--pro-input-background-color);
+  border-bottom: 1px solid var(--pro-border-color);
+}
+
+.card-content {
+  padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.info-row {
+  font-size: 0.9rem;
+  color: var(--pro-text-secondary-color);
+  display: flex;
+  justify-content: space-between;
+}
+
+.info-row strong {
+  color: var(--pro-text-color);
+  font-weight: 500;
+}
+
+.info-row.total {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--pro-primary-color);
+  padding-top: 1rem;
+  border-top: 1px solid var(--pro-border-light-color);
+  margin-top: 0.5rem;
+}
+
+/* Scrollbar Styling
+   ========================================================================== */
+.dialog-content::-webkit-scrollbar {
+  width: 6px;
+}
+.dialog-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dialog-content::-webkit-scrollbar-thumb {
+  background: var(--pro-border-color);
+  border-radius: 10px;
+}
+.dialog-content::-webkit-scrollbar-thumb:hover {
+  background: var(--pro-text-secondary-color);
+}
+
+/* Final Polish
+   ========================================================================== */
+.dialog-container {
+  transition: transform 0.3s ease-out;
+  transform: scale(0.95);
+  opacity: 0;
+  animation: fadeInScaleUp 0.4s forwards cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@keyframes fadeInScaleUp {
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

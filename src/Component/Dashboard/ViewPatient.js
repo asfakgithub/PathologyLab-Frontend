@@ -126,7 +126,6 @@ const navigate = useNavigate();
   const addCustomTest = () => {
     const testsCopy = [...enrichedTests];
     const patientCopy = { ...(patient || {}) };
-    const newTestTempId = `tempTest_${Date.now()}_${Math.floor(Math.random()*10000)}`;
     const newTest = {
       testId: null,
       testName: 'Custom Test',

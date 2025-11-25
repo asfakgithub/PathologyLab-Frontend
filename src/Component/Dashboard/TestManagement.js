@@ -9,8 +9,6 @@ import {
   CardActions,
   IconButton,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
   TextField,
   Snackbar,
@@ -24,7 +22,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Tooltip
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -32,7 +31,7 @@ import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import ScienceIcon from '@mui/icons-material/Science';
 import LoadingSpinner from '../common/LoadingSpinner';
-
+import TestTube1 from '../Images/TestTube1.svg';
 function TestManagement() {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +39,7 @@ function TestManagement() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
+  
 
   // Form state
   const [form, setForm] = useState({
@@ -403,6 +403,7 @@ function TestManagement() {
       </Box>
 
       {/* Tests List */}
+      {/* Compact grid: horizontal flow (row-first) — smaller tiles */}
       <Grid container spacing={3}>
         {filteredTests.length === 0 ? (
           <Grid item xs={12}>
@@ -418,75 +419,100 @@ function TestManagement() {
           </Grid>
         ) : (
           filteredTests.map((test) => (
-            <Grid item xs={12} sm={6} md={4} key={test._id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                    <Typography variant="h6" fontWeight="bold" noWrap>
-                      {test.name}
-                    </Typography>
-                    <Chip 
-                      label={test.code} 
-                      size="small" 
-                      color="primary" 
-                      variant="outlined"
-                    />
-                  </Box>
-                  
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    <strong>Category:</strong> {test.category}
-                  </Typography>
-                  
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    <strong>Sample:</strong> {test.sampleType} {test.sampleVolume && `(${test.sampleVolume})`}
-                  </Typography>
-                  
-                  {test.duration && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      <strong>Duration:</strong> {test.duration} hours
-                    </Typography>
-                  )}
-                  
-                  <Typography variant="body2" sx={{ mb: 2 }}>
-                    {test.description}
-                  </Typography>
-                  
-                  {test.parameters && test.parameters.length > 0 && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      <strong>Parameters:</strong> {test.parameters.length} test(s)
-                    </Typography>
-                  )}
-                  
-                  <Typography variant="h6" color="primary" fontWeight="bold">
-                    ₹{test.price}
-                  </Typography>
-                  
-                  {test.fastingRequired && (
-                    <Chip 
-                      label="Fasting Required" 
-                      size="small" 
-                      color="warning" 
-                      sx={{ mt: 1 }}
-                    />
-                  )}
+            <Grid item xs={12} sm={6} md={4} key={test._id} sx={{ display: 'flex' }}>
+              <Card sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                <CardContent sx={{ flexGrow: 1, display: 'flex', p: 2 }}>
+                    <Box sx={{ flex: '1 1 75%', pr: 2, display: 'flex', flexDirection: 'column' }}>
+                        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                            <Typography variant="h6" fontWeight="bold">
+                                {test.name}
+                            </Typography>
+                            <Chip
+                                label={test.code}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                            />
+                        </Box>
+
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            <strong>Category:</strong> {test.category}
+                        </Typography>
+
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            <strong>Sample:</strong> {test.sampleType} {test.sampleVolume && `(${test.sampleVolume})`}
+                        </Typography>
+
+                        {test.duration && (
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                <strong>Duration:</strong> {test.duration} hours
+                            </Typography>
+                        )}
+
+                        <Tooltip title={test.description} arrow>
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                mb: 2,
+                                display: '-webkit-box',
+                                WebkitBoxOrient: 'vertical',
+                                WebkitLineClamp: 2,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                cursor: 'pointer',
+                                flexGrow: 1
+                                }}
+                            >
+                                {test.description.slice(0, 100) + (test.description.length > 40 ? '...' : '')}
+                            </Typography>
+                        </Tooltip>
+
+                        {test.parameters && test.parameters.length > 0 && (
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                <strong>Parameters:</strong> {test.parameters.length} test(s)
+                            </Typography>
+                        )}
+
+                        {test.fastingRequired && (
+                            <Chip
+                                label="Fasting Required"
+                                size="small"
+                                color="warning"
+                                sx={{ mt: 'auto' }}
+                            />
+                        )}
+                    </Box>
+                    <Box sx={{ flex: '0 0 25%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', pl: 2, borderLeft: '1px solid', borderColor: 'divider' }}>
+                        <Box
+                            component="img"
+                            src={TestTube1}
+                            alt="test-tube"
+                            sx={{ width: '100%', maxWidth: 120, height: 'auto', objectFit: 'contain', mb: 1 }}
+                        />
+                        <Box textAlign="center">
+                          <Typography variant="h6" color="primary" fontWeight="bold">
+                              ₹{test.price}
+                          </Typography>
+                        </Box>
+                    </Box>
                 </CardContent>
-                
-                <CardActions>
-                  <Button 
-                    size="small" 
-                    startIcon={<EditIcon />}
-                    onClick={() => handleOpenDialog(test)}
-                  >
-                    Edit
-                  </Button>
-                  <Button 
-                    size="small" 
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => handleDelete(test._id, test.name)}
-                  >
-                    Delete
-                  </Button>
+
+                <CardActions sx={{ justifyContent: 'flex-end' }}>
+                    <Button
+                        size="small"
+                        startIcon={<EditIcon />}
+                        onClick={() => handleOpenDialog(test)}
+                    >
+                        Edit
+                    </Button>
+                    <Button
+                        size="small"
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        onClick={() => handleDelete(test._id, test.name)}
+                    >
+                        Delete
+                    </Button>
                 </CardActions>
               </Card>
             </Grid>
@@ -504,13 +530,6 @@ function TestManagement() {
           sx: { maxHeight: '90vh' }
         }}
       >
-        <DialogTitle>
-          <Typography variant="h6">
-            {editingTest ? 'Edit Test' : 'Add New Test'}
-          </Typography>
-        </DialogTitle>
-        
-        <DialogContent>
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error}
@@ -921,7 +940,6 @@ function TestManagement() {
               </Grid>
             </CardContent>
           </Card>
-        </DialogContent>
         
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={handleCloseDialog} disabled={formLoading}>
@@ -953,6 +971,8 @@ function TestManagement() {
         </Alert>
       </Snackbar>
     </Box>
+
+
   );
 }
 
