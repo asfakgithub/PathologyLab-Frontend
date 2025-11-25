@@ -501,7 +501,8 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
   };
 
   const calculateTotals = () => {
-    const subtotal = formData.testDetails.reduce((sum, test) => sum + (test.testPrice || 0), 0);
+    const testDetailsArray = formData.testDetails || [];
+    const subtotal = testDetailsArray.reduce((sum, test) => sum + (test.testPrice || 0), 0);
     const discountAmount = formData.discountAmount || 0;
     const taxableAmount = subtotal - discountAmount;
     const gstAmount = (taxableAmount * (formData.gstPercentage || 0)) / 100;
@@ -643,7 +644,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
                     Selected Tests
                   </Typography>
                   <List>
-                    {formData.testDetails.map((test, index) => (
+                    {(formData.testDetails || []).map((test, index) => (
                       <ListItem key={index} divider>
                         <ListItemText
                           primary={`${test.testName} (${test.testCode})`}
@@ -723,7 +724,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError }) => {
                         Patient: {formData.patientName}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Tests: {formData.testDetails.length} items
+                        Tests: {(formData.testDetails || []).length} items
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>

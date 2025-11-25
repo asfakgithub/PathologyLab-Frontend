@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import patientService from '../../services/patientService';
 
 const PateintReport = (props) => {
@@ -24,7 +23,7 @@ const PateintReport = (props) => {
   };
   const routeParams = useParams();
   const patientId = (props && props.patientId) || routeParams?.id || getPatientIdFromLocation();
-  const { user } = useAuth();
+  
 
   useEffect(() => {
     const fetchPatient = async () => {

@@ -18,7 +18,6 @@ import {
   Avatar,
   Grid,
   Card,
-  CardContent,
   Tooltip
 } from '@mui/material';
 import {

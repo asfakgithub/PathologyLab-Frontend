@@ -65,7 +65,7 @@ export const invoiceService = {
   getAllInvoices: async (params = {}) => {
     try {
       const queryParams = new URLSearchParams(params).toString();
-      const endpoint = queryParams ? `/invoice?${queryParams}` : '/invoice';
+      const endpoint = queryParams ? `/api/v1/invoices?${queryParams}` : '/api/v1/invoices';
       console.log('📡 GET ALL INVOICES REQUEST:', `[GET]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
       const response = await invoiceApi.get(endpoint);
       return response;
@@ -78,7 +78,7 @@ export const invoiceService = {
   // Get invoice by ID
   getInvoiceById: async (invoiceId) => {
     try {
-      const endpoint = `/invoice/${invoiceId}`;
+      const endpoint = `/api/v1/invoices/${invoiceId}`;
       console.log('📡 GET INVOICE BY ID REQUEST:', `[GET]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
       const response = await invoiceApi.get(endpoint);
       return response;
@@ -90,7 +90,7 @@ export const invoiceService = {
   // Update invoice
   updateInvoice: async (invoiceId, updateData) => {
     try {
-      const endpoint = `/invoice/update/${invoiceId}`;
+      const endpoint = `/api/v1/invoices/update/${invoiceId}`;
       console.log('📡 UPDATE INVOICE REQUEST:', `[PUT]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
       const response = await invoiceApi.put(endpoint, updateData);
       return response;
@@ -102,7 +102,7 @@ export const invoiceService = {
   // Update invoice status
   updateInvoiceStatus: async (invoiceId, status) => {
     try {
-      const endpoint = `/invoice/status/${invoiceId}`;
+      const endpoint = `/api/v1/invoices/status/${invoiceId}`;
       console.log('📡 UPDATE INVOICE STATUS REQUEST:', `[PATCH]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
       const response = await invoiceApi.patch(endpoint, { status });
       return response;
@@ -114,7 +114,7 @@ export const invoiceService = {
   // Add payment to invoice
   addPayment: async (invoiceId, paymentData) => {
     try {
-      const endpoint = `/invoice/payment/${invoiceId}`;
+      const endpoint = `/api/v1/invoices/payment/${invoiceId}`;
       console.log('📡 ADD PAYMENT TO INVOICE REQUEST:', `[POST]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
       const response = await invoiceApi.post(endpoint, paymentData);
       return response;
@@ -126,7 +126,7 @@ export const invoiceService = {
   // Get invoices by patient ID
   getInvoicesByPatient: async (patientId) => {
     try {
-      const endpoint = `/invoice/patient/${patientId}`;
+      const endpoint = `/api/v1/invoices/patient/${patientId}`;
       console.log('📡 GET INVOICES BY PATIENT REQUEST:', `[GET]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
       const response = await invoiceApi.get(endpoint);
       return response;
@@ -138,7 +138,7 @@ export const invoiceService = {
   // Delete invoice
   deleteInvoice: async (invoiceId) => {
     try {
-      const endpoint = `/invoice/${invoiceId}`;
+      const endpoint = `/api/v1/invoices/${invoiceId}`;
       console.log('📡 DELETE INVOICE REQUEST:', `[DELETE]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
       const response = await invoiceApi.delete(endpoint);
       return response;
@@ -150,7 +150,7 @@ export const invoiceService = {
   // Get invoice statistics
   getInvoiceStats: async () => {
     try {
-      const endpoint = '/invoice/stats/summary';
+      const endpoint = '/api/v1/invoices/stats/summary';
       console.log('📡 GET INVOICE STATS REQUEST:', `[GET]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
       const response = await invoiceApi.get(endpoint);
       return response;
