@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -31,23 +31,29 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Avatar,
-  Tooltip
+  Tooltip,
+  Snackbar, 
+  Alert, 
+  CircularProgress
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Visibility as ViewIcon,
-  Print as PrintIcon,
-  Download as DownloadIcon,
   Assignment as ReportIcon,
   CalendarToday as CalendarIcon,
   CheckCircle as CompleteIcon,
   HourglassEmpty as PendingIcon,
-  Warning as CriticalIcon,
-  FileDownload as ExportIcon
+  Warning as WarningIcon,
+  FileDownload as ExportIcon,
+  Refresh as RefreshIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
-// Date picker dependencies removed for now - can be added later if needed
+import { useNavigate } from 'react-router-dom';
+import patientService from '../../../services/patientService';
+
+const formatDate = (dateString) => new Date(dateString).toLocaleDateString();
 
 const ReportManagementEnhanced = () => {
   const [reports, setReports] = useState([]);
@@ -60,91 +66,52 @@ const ReportManagementEnhanced = () => {
   const [filterType, setFilterType] = useState('all');
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const navigate = useNavigate();
 
-  // Sample data
-  useEffect(() => {
-    const sampleReports = [
-      {
-        id: 1,
-        reportId: 'RPT-2024-001',
-        patientId: 'PAT-001',
-        patientName: 'John Doe',
-        patientAge: 35,
-        patientGender: 'Male',
-        tests: [
-          { name: 'Complete Blood Count', result: 'Normal', status: 'completed' },
-          { name: 'Lipid Profile', result: 'High Cholesterol', status: 'completed' }
-        ],
-        reportDate: '2024-01-15',
-        status: 'completed',
-        findings: 'Elevated cholesterol levels observed',
-        conclusion: 'Hypercholesterolemia',
-        recommendations: 'Dietary changes and follow-up in 3 months',
-        doctorName: 'Dr. Smith',
-        criticalValues: false,
-        totalAmount: 1500
-      },
-      {
-        id: 2,
-        reportId: 'RPT-2024-002',
-        patientId: 'PAT-002',
-        patientName: 'Jane Smith',
-        patientAge: 28,
-        patientGender: 'Female',
-        tests: [
-          { name: 'Thyroid Function', result: 'Pending', status: 'processing' },
-          { name: 'Vitamin D', result: 'Deficient', status: 'completed' }
-        ],
-        reportDate: '2024-01-16',
-        status: 'processing',
-        findings: 'Vitamin D deficiency noted',
-        conclusion: 'Partial results available',
-        recommendations: 'Vitamin D supplementation',
-        doctorName: 'Dr. Johnson',
-        criticalValues: true,
-        totalAmount: 1200
-      },
-      {
-        id: 3,
-        reportId: 'RPT-2024-003',
-        patientId: 'PAT-003',
-        patientName: 'Mike Wilson',
-        patientAge: 45,
-        patientGender: 'Male',
-        tests: [
-          { name: 'Diabetes Panel', result: 'Normal', status: 'completed' },
-          { name: 'Liver Function', result: 'Normal', status: 'completed' }
-        ],
-        reportDate: '2024-01-17',
-        status: 'completed',
-        findings: 'All parameters within normal limits',
-        conclusion: 'Normal results',
-        recommendations: 'Continue regular monitoring',
-        doctorName: 'Dr. Brown',
-        criticalValues: false,
-        totalAmount: 1800
-      }
-    ];
-    
-    setTimeout(() => {
-      setReports(sampleReports);
-      setFilteredReports(sampleReports);
-      setLoading(false);
-    }, 1000);
+  const showSnackbar = useCallback((message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
   }, []);
+
+  const fetchReports = useCallback(async () => {
+    try {
+      setLoading(true);
+      const patientsResponse = await patientService.getAllPatients();
+      const patients = patientsResponse.data || []; // The API returns patient list in `data`
+
+      // The component treats each patient as a "report". We need to map the patient data
+      // to a structure the component can use.
+      const allReports = patients.map(patient => ({
+        ...patient,
+        reportId: patient._id.slice(-6).toUpperCase(), // Create a display ID
+        patient: { name: patient.name, patientId: patient._id },
+        reportDate: patient.updatedAt || patient.createdAt,
+      }));
+      setReports(allReports);
+    } catch (error) {
+      showSnackbar('Error fetching reports: ' + (error.message || 'Unknown error'), 'error');
+      setReports([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [showSnackbar]);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
 
   // Filter reports
   useEffect(() => {
     let filtered = reports.filter(report => {
       const matchesSearch = 
-        report.reportId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.doctorName.toLowerCase().includes(searchTerm.toLowerCase());
+        (report.reportId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (report.patient?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (report.patient?.patientId || '').toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = filterStatus === 'all' || report.status === filterStatus;
       const matchesType = filterType === 'all' || 
-        (filterType === 'critical' && report.criticalValues) ||
-        (filterType === 'normal' && !report.criticalValues);
+        (filterType === 'critical' && report.priority === 'critical') ||
+        (filterType === 'normal' && report.priority !== 'critical');
       
       return matchesSearch && matchesStatus && matchesType;
     });
@@ -156,9 +123,17 @@ const ReportManagementEnhanced = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return 'success';
-      case 'processing': return 'warning';
+      case 'in-progress': return 'warning';
       case 'pending': return 'default';
+      default: return 'default';
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
       case 'critical': return 'error';
+      case 'high': return 'warning';
+      case 'normal': return 'info';
       default: return 'default';
     }
   };
@@ -166,31 +141,30 @@ const ReportManagementEnhanced = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed': return <CompleteIcon />;
-      case 'processing': return <PendingIcon />;
+      case 'in-progress': return <PendingIcon />;
       case 'pending': return <CalendarIcon />;
-      case 'critical': return <CriticalIcon />;
       default: return <CalendarIcon />;
     }
   };
 
-  const handleView = (report) => {
+  const handleView = async (report) => {
     setSelectedReport(report);
     setOpenViewDialog(true);
   };
 
   const handleEdit = (report) => {
     setSelectedReport(report);
-    // setOpenDialog(true); // This would open an edit dialog, which seems to be removed.
+    navigate(`/view/${report._id}`);
   };
 
-  const handlePrint = (report) => {
-    console.log('Printing report:', report.reportId);
-    // Implement print functionality
-  };
+  const handleDownload = (report) => {
+    // This will navigate to the printable report page for the patient.
+    navigate(`/patient-report/${report._id}`);
+  }
 
-  const handleExport = (report) => {
-    console.log('Exporting report:', report.reportId);
-    // Implement export functionality
+  const handleCreateReport = () => {
+    setSelectedReport(null);
+    navigate('/dashboard/reports/create');
   };
 
   const ReportViewDialog = () => (
@@ -208,7 +182,7 @@ const ReportManagementEnhanced = () => {
               Report Details - {selectedReport?.reportId}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Generated on {selectedReport?.reportDate}
+              Generated on {selectedReport?.reportDate ? formatDate(selectedReport.reportDate) : 'N/A'}
             </Typography>
           </Box>
           <Box flexGrow={1} />
@@ -233,15 +207,15 @@ const ReportManagementEnhanced = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Name</Typography>
-                      <Typography variant="body1">{selectedReport.patientName}</Typography>
+                      <Typography variant="body1">{selectedReport.patient?.name || 'N/A'}</Typography>
                     </Grid>
                     <Grid item xs={3}>
                       <Typography variant="body2" color="text.secondary">Age</Typography>
-                      <Typography variant="body1">{selectedReport.patientAge} years</Typography>
+                      <Typography variant="body1">{selectedReport.patient?.age || 'N/A'} years</Typography>
                     </Grid>
                     <Grid item xs={3}>
                       <Typography variant="body2" color="text.secondary">Gender</Typography>
-                      <Typography variant="body1">{selectedReport.patientGender}</Typography>
+                      <Typography variant="body1">{selectedReport.patient?.gender || 'N/A'}</Typography>
                     </Grid>
                   </Grid>
                 </CardContent>
@@ -257,10 +231,10 @@ const ReportManagementEnhanced = () => {
                   </Typography>
                   <List dense>
                     {selectedReport.tests.map((test, index) => (
-                      <ListItem key={index}>
+                      <ListItem key={test.testId || index}>
                         <ListItemText
-                          primary={test.name}
-                          secondary={`Result: ${test.result}`}
+                          primary={test.testName}
+                          secondary={`Category: ${test.category}`}
                         />
                         <ListItemSecondaryAction>
                           <Chip
@@ -284,7 +258,7 @@ const ReportManagementEnhanced = () => {
                     Findings
                   </Typography>
                   <Typography variant="body2">
-                    {selectedReport.findings || 'No findings recorded'}
+                    {selectedReport.remarks || 'No findings recorded'}
                   </Typography>
                 </CardContent>
               </Card>
@@ -297,7 +271,7 @@ const ReportManagementEnhanced = () => {
                     Conclusion
                   </Typography>
                   <Typography variant="body2">
-                    {selectedReport.conclusion || 'No conclusion recorded'}
+                    {selectedReport.conclusion || 'No conclusion recorded'} 
                   </Typography>
                 </CardContent>
               </Card>
@@ -310,7 +284,7 @@ const ReportManagementEnhanced = () => {
                     Recommendations
                   </Typography>
                   <Typography variant="body2">
-                    {selectedReport.recommendations || 'No recommendations provided'}
+                    {selectedReport.recommendations || 'No recommendations provided'} 
                   </Typography>
                 </CardContent>
               </Card>
@@ -323,14 +297,14 @@ const ReportManagementEnhanced = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Doctor</Typography>
-                      <Typography variant="body1">{selectedReport.doctorName}</Typography>
+                      <Typography variant="body1">{selectedReport.examinedBy || 'N/A'}</Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Critical Values</Typography>
                       <Chip
-                        label={selectedReport.criticalValues ? 'Yes' : 'No'}
+                        label={selectedReport.priority === 'critical' ? 'Yes' : 'No'}
                         size="small"
-                        color={selectedReport.criticalValues ? 'error' : 'success'}
+                        color={selectedReport.priority === 'critical' ? 'error' : 'success'}
                       />
                     </Grid>
                   </Grid>
@@ -341,12 +315,6 @@ const ReportManagementEnhanced = () => {
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handlePrint} startIcon={<PrintIcon />} variant="outlined">
-          Print Report
-        </Button>
-        <Button onClick={handleExport} startIcon={<DownloadIcon />} variant="outlined">
-          Export PDF
-        </Button>
         <Button onClick={() => setOpenViewDialog(false)}>
           Close
         </Button>
@@ -357,14 +325,14 @@ const ReportManagementEnhanced = () => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Typography>Loading reports...</Typography>
+        <CircularProgress />
       </Box>
     );
   }
 
   return (
     <Box p={3}>
-        {/* Header */}
+        {/* Header */ }
         <Box display="flex" justifyContent="between" alignItems="center" mb={3}>
           <Box>
             <Typography variant="h4" gutterBottom>
@@ -374,16 +342,22 @@ const ReportManagementEnhanced = () => {
               Manage patient reports and test results
             </Typography>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            // onClick={() => setOpenDialog(true)} // This would open a create dialog.
-          >
-            Create Report
-          </Button>
+          <Box>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={fetchReports}
+              sx={{ mr: 2 }}
+            >
+              Refresh
+            </Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateReport}>
+              Create Report
+            </Button>
+          </Box>
         </Box>
 
-        {/* Statistics Cards */}
+        {/* Statistics Cards */ }
         <Grid container spacing={3} mb={3}>
           <Grid item xs={12} sm={6} md={3}>
             <Card>
@@ -426,7 +400,7 @@ const ReportManagementEnhanced = () => {
                   </Avatar>
                   <Box>
                     <Typography variant="h6">
-                      {reports.filter(r => r.status === 'processing').length}
+                      {reports.filter(r => r.status === 'in-progress').length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">Processing</Typography>
                   </Box>
@@ -439,11 +413,11 @@ const ReportManagementEnhanced = () => {
               <CardContent>
                 <Box display="flex" alignItems="center">
                   <Avatar sx={{ bgcolor: 'error.main', mr: 2 }}>
-                    <CriticalIcon />
+                    <WarningIcon />
                   </Avatar>
                   <Box>
                     <Typography variant="h6">
-                      {reports.filter(r => r.criticalValues).length}
+                      {reports.filter(r => r.priority === 'critical').length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">Critical Values</Typography>
                   </Box>
@@ -453,7 +427,7 @@ const ReportManagementEnhanced = () => {
           </Grid>
         </Grid>
 
-        {/* Filters and Search */}
+        {/* Filters and Search */ }
         <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={4}>
@@ -481,7 +455,7 @@ const ReportManagementEnhanced = () => {
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="processing">Processing</MenuItem>
+                  <MenuItem value="in-progress">In Progress</MenuItem>
                   <MenuItem value="completed">Completed</MenuItem>
                 </Select>
               </FormControl>
@@ -512,7 +486,7 @@ const ReportManagementEnhanced = () => {
           </Grid>
         </Paper>
 
-        {/* Reports Table */}
+        {/* Reports Table */ }
         <Paper>
           <TableContainer>
             <Table>
@@ -524,7 +498,7 @@ const ReportManagementEnhanced = () => {
                   <TableCell>Date</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Doctor</TableCell>
-                  <TableCell>Critical</TableCell>
+                  <TableCell>Priority</TableCell>
                   <TableCell align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -532,71 +506,64 @@ const ReportManagementEnhanced = () => {
                 {filteredReports
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((report) => (
-                    <TableRow key={report.id} hover>
+                    <TableRow key={report._id} hover>
                       <TableCell>
                         <Box display="flex" alignItems="center">
                           <ReportIcon color="primary" sx={{ mr: 1 }} />
-                          {report.reportId}
+                          {report.reportId || report._id.slice(-6)}
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            {report.patientName}
+                            {report.patient?.name || 'N/A'}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {report.patientAge}y, {report.patientGender}
+                            ID: {report.patient?.patientId || 'N/A'}
                           </Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Box>
                           <Typography variant="body2">
-                            {report.tests.length} test(s)
+                            {report.tests?.length || 0} test(s)
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {report.tests.map(t => t.name).join(', ').slice(0, 30)}...
+                            {report.tests?.map(t => t.testName).join(', ').slice(0, 30)}...
                           </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell>{report.reportDate}</TableCell>
+                      <TableCell>{report.reportDate ? formatDate(report.reportDate) : formatDate(report.createdAt)}</TableCell>
                       <TableCell>
                         <Chip
                           icon={getStatusIcon(report.status)}
-                          label={report.status.toUpperCase()}
+                          label={report.status?.toUpperCase()}
                           color={getStatusColor(report.status)}
                           size="small"
                         />
                       </TableCell>
-                      <TableCell>{report.doctorName}</TableCell>
+                      <TableCell>{report.examinedBy || 'N/A'}</TableCell>
                       <TableCell>
-                        {report.criticalValues && (
-                          <Chip
-                            icon={<CriticalIcon />}
-                            label="Critical"
-                            color="error"
-                            size="small"
-                          />
-                        )}
+                        <Chip
+                          label={report.priority?.toUpperCase() || 'NORMAL'}
+                          color={getPriorityColor(report.priority)}
+                          size="small"
+                          variant="outlined"
+                        />
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="View Report">
-                          <IconButton onClick={() => handleView(report)} size="small">
+                          <IconButton onClick={() => handleView(report)} size="small" color="primary">
                             <ViewIcon />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Edit Report">
-                          <IconButton onClick={() => handleEdit(report)} size="small">
+                          <IconButton onClick={() => handleEdit(report)} size="small" color="secondary">
                             <EditIcon />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Print Report">
-                          <IconButton onClick={() => handlePrint(report)} size="small">
-                            <PrintIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Export PDF">
-                          <IconButton onClick={() => handleExport(report)} size="small">
+                        <Tooltip title="Download Report">
+                          <IconButton onClick={() => handleDownload(report)} size="small" color="success">
                             <DownloadIcon />
                           </IconButton>
                         </Tooltip>
@@ -609,7 +576,7 @@ const ReportManagementEnhanced = () => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={filteredReports.length}
+            count={filteredReports.length} 
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={(event, newPage) => setPage(newPage)}
@@ -620,8 +587,14 @@ const ReportManagementEnhanced = () => {
           />
         </Paper>
 
-        {/* View Dialog */}
-        <ReportViewDialog />
+        {/* View Dialog */ }
+        {openViewDialog && <ReportViewDialog />}
+
+        <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+                {snackbar.message}
+            </Alert>
+        </Snackbar>
       </Box>
   );
 };
