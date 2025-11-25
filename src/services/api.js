@@ -1,10 +1,12 @@
 import axios from 'axios';
 
-// API configuration
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+// API configuration — read from environment with sensible fallbacks
+const API_BASE_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/${process.env.REACT_APP_API_VERSION || 'v1'}`;
 
 console.log('📋 MAIN API SERVICE DEBUG:');
-console.log('  API_BASE_URL (hardcoded):', API_BASE_URL);
+console.log('  REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+console.log('  REACT_APP_API_VERSION:', process.env.REACT_APP_API_VERSION);
+console.log('  API_BASE_URL:', API_BASE_URL);
 
 // Create axios instance
 const api = axios.create({

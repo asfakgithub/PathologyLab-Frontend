@@ -3,7 +3,8 @@ import './index.css'
 import LogoILabU from '../../Component/Images/LogoILabU.png'
 import Model from '../Modal/model'
 import { Link } from 'react-router-dom'
-import axios from 'axios'
+import apiClient from '../../services/apiClient'
+import { endpoints } from '../../services/api'
 
 function Navbar() {
   const [openCreate, setOpenCreate] = useState(false)
@@ -74,7 +75,7 @@ function Navbar() {
       return
     }
     try {
-      await axios.post('http://localhost:8000/test/post', { ...input, subtests })
+      await apiClient.post(endpoints.tests.create, { ...input, subtests })
       window.location.reload()
     } catch (err) {
       console.error(err)

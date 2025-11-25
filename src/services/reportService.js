@@ -1,69 +1,17 @@
-import axios from 'axios';
+import apiClient from './apiClient';
+import { endpoints } from './api';
 
-// Report API configuration
-const REPORT_API_BASE_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1`;
-
-// Create axios instance for report API
-const reportApi = axios.create({
-  baseURL: REPORT_API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor to add auth token
-reportApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor for report API
-reportApi.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
-  (error) => {
-    if (error.response) {
-      const { status, data } = error.response;
-      return Promise.reject({
-        message: data?.message || 'An error occurred',
-        error: data?.error || 'UNKNOWN_ERROR',
-        status: status,
-        details: data
-      });
-    } else if (error.request) {
-      return Promise.reject({
-        message: 'Network error. Please check your connection.',
-        error: 'NETWORK_ERROR',
-        status: 0
-      });
-    } else {
-      return Promise.reject({
-        message: error.message || 'An unexpected error occurred',
-        error: 'UNKNOWN_ERROR',
-        status: 0
-      });
-    }
-  }
-);
+console.log('🔧 REPORT SERVICE DEBUG:');
+console.log('  API client baseURL:', apiClient.defaults.baseURL);
 
 // Report API functions
 export const reportService = {
   // Get all reports with filtering and pagination
   getAllReports: async (params = {}) => {
     try {
-      const endpoint = '/reports';
-      console.log('📡 GET ALL REPORTS REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint, { params });
+      const endpoint = endpoints.reports.list;
+      console.log('📡 GET ALL REPORTS REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint, { params });
       return response;
     } catch (error) {
       console.error('❌ GET ALL REPORTS ERROR:', error);
@@ -74,9 +22,9 @@ export const reportService = {
   // Get report by ID
   getReportById: async (reportId) => {
     try {
-      const endpoint = `/reports/${reportId}`;
-      console.log('📡 GET REPORT BY ID REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint);
+      const endpoint = endpoints.reports.getById(reportId);
+      console.log('📡 GET REPORT BY ID REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint);
       return response;
     } catch (error) {
       console.error('❌ GET REPORT BY ID ERROR:', error);
@@ -87,10 +35,10 @@ export const reportService = {
   // Create new report
   createReport: async (reportData) => {
     try {
-      const endpoint = '/reports';
-      console.log('📡 CREATE REPORT REQUEST:', `[POST]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
+      const endpoint = endpoints.reports.create;
+      console.log('📡 CREATE REPORT REQUEST:', `[POST]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
       console.log('📊 Report Data:', reportData);
-      const response = await reportApi.post(endpoint, reportData);
+      const response = await apiClient.post(endpoint, reportData);
       return response;
     } catch (error) {
       console.error('❌ CREATE REPORT ERROR:', error);
@@ -101,9 +49,9 @@ export const reportService = {
   // Update report
   updateReport: async (reportId, updateData) => {
     try {
-      const endpoint = `/reports/${reportId}`;
-      console.log('📡 UPDATE REPORT REQUEST:', `[PUT]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.put(endpoint, updateData);
+      const endpoint = endpoints.reports.update(reportId);
+      console.log('📡 UPDATE REPORT REQUEST:', `[PUT]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.put(endpoint, updateData);
       return response;
     } catch (error) {
       console.error('❌ UPDATE REPORT ERROR:', error);
@@ -114,9 +62,9 @@ export const reportService = {
   // Delete report
   deleteReport: async (reportId) => {
     try {
-      const endpoint = `/reports/${reportId}`;
-      console.log('📡 DELETE REPORT REQUEST:', `[DELETE]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.delete(endpoint);
+      const endpoint = endpoints.reports.delete(reportId);
+      console.log('📡 DELETE REPORT REQUEST:', `[DELETE]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.delete(endpoint);
       return response;
     } catch (error) {
       console.error('❌ DELETE REPORT ERROR:', error);
@@ -127,9 +75,9 @@ export const reportService = {
   // Get reports by patient ID
   getReportsByPatient: async (patientId) => {
     try {
-      const endpoint = `/reports/patient/${patientId}`;
-      console.log('📡 GET REPORTS BY PATIENT REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint);
+      const endpoint = endpoints.reports.byPatient(patientId);
+      console.log('📡 GET REPORTS BY PATIENT REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint);
       return response;
     } catch (error) {
       console.error('❌ GET REPORTS BY PATIENT ERROR:', error);
@@ -141,8 +89,8 @@ export const reportService = {
   checkPatientReport: async (patientId) => {
     try {
       const endpoint = `/reports/check/${patientId}`;
-      console.log('📡 CHECK PATIENT REPORT REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint);
+      console.log('📡 CHECK PATIENT REPORT REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint);
       return response;
     } catch (error) {
       console.error('❌ CHECK PATIENT REPORT ERROR:', error);
@@ -153,9 +101,9 @@ export const reportService = {
   // Search reports
   searchReports: async (searchQuery) => {
     try {
-      const endpoint = '/reports/search';
-      console.log('📡 SEARCH REPORTS REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint, { params: { q: searchQuery } });
+      const endpoint = endpoints.reports.search;
+      console.log('📡 SEARCH REPORTS REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint, { params: { q: searchQuery } });
       return response;
     } catch (error) {
       console.error('❌ SEARCH REPORTS ERROR:', error);
@@ -166,9 +114,9 @@ export const reportService = {
   // Get report statistics
   getReportStats: async () => {
     try {
-      const endpoint = '/reports/stats';
-      console.log('📡 GET REPORT STATS REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint);
+      const endpoint = endpoints.reports.stats;
+      console.log('📡 GET REPORT STATS REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint);
       return response;
     } catch (error) {
       console.error('❌ GET REPORT STATS ERROR:', error);
@@ -179,9 +127,9 @@ export const reportService = {
   // Get pending reports
   getPendingReports: async () => {
     try {
-      const endpoint = '/reports/pending';
-      console.log('📡 GET PENDING REPORTS REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint);
+      const endpoint = endpoints.reports.pending;
+      console.log('📡 GET PENDING REPORTS REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint);
       return response;
     } catch (error) {
       console.error('❌ GET PENDING REPORTS ERROR:', error);
@@ -193,8 +141,8 @@ export const reportService = {
   getCompletedReports: async () => {
     try {
       const endpoint = '/reports/completed';
-      console.log('📡 GET COMPLETED REPORTS REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint);
+      console.log('📡 GET COMPLETED REPORTS REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint);
       return response;
     } catch (error) {
       console.error('❌ GET COMPLETED REPORTS ERROR:', error);
@@ -205,9 +153,9 @@ export const reportService = {
   // Update report status
   updateReportStatus: async (reportId, status) => {
     try {
-      const endpoint = `/reports/${reportId}`;
-      console.log('📡 UPDATE REPORT STATUS REQUEST:', `[PUT]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.put(endpoint, { status });
+      const endpoint = endpoints.reports.update(reportId);
+      console.log('📡 UPDATE REPORT STATUS REQUEST:', `[PUT]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.put(endpoint, { status });
       return response;
     } catch (error) {
       console.error('❌ UPDATE REPORT STATUS ERROR:', error);
@@ -218,9 +166,9 @@ export const reportService = {
   // Generate report PDF
   generateReportPDF: async (reportId) => {
     try {
-      const endpoint = `/reports/${reportId}/pdf`;
-      console.log('📡 GENERATE REPORT PDF REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint, {
+      const endpoint = endpoints.reports.pdf(reportId);
+      console.log('📡 GENERATE REPORT PDF REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint, {
         responseType: 'blob'
       });
       return response;
@@ -233,9 +181,9 @@ export const reportService = {
   // Send report via email
   sendReportEmail: async (reportId, emailData) => {
     try {
-      const endpoint = `/reports/${reportId}/send-email`;
-      console.log('📡 SEND REPORT EMAIL REQUEST:', `[POST]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.post(endpoint, emailData);
+      const endpoint = endpoints.reports.sendEmail(reportId);
+      console.log('📡 SEND REPORT EMAIL REQUEST:', `[POST]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.post(endpoint, emailData);
       return response;
     } catch (error) {
       console.error('❌ SEND REPORT EMAIL ERROR:', error);
@@ -261,9 +209,9 @@ export const reportService = {
   // Export reports data
   exportReportsData: async (format = 'csv', params = {}) => {
     try {
-      const endpoint = '/reports/export';
-      console.log('📡 EXPORT REPORTS DATA REQUEST:', `[GET]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.get(endpoint, {
+      const endpoint = endpoints.reports.export;
+      console.log('📡 EXPORT REPORTS DATA REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint, {
         params: { format, ...params },
         responseType: 'blob'
       });
@@ -277,9 +225,9 @@ export const reportService = {
   // Approve report
   approveReport: async (reportId, approvalData) => {
     try {
-      const endpoint = `/reports/${reportId}/approve`;
-      console.log('📡 APPROVE REPORT REQUEST:', `[POST]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.post(endpoint, approvalData);
+      const endpoint = endpoints.reports.approve(reportId);
+      console.log('📡 APPROVE REPORT REQUEST:', `[POST]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.post(endpoint, approvalData);
       return response;
     } catch (error) {
       console.error('❌ APPROVE REPORT ERROR:', error);
@@ -290,9 +238,9 @@ export const reportService = {
   // Bulk approve reports
   bulkApproveReports: async (reportIds) => {
     try {
-      const endpoint = '/reports/bulk/approve';
-      console.log('📡 BULK APPROVE REPORTS REQUEST:', `[POST]`, endpoint, 'BaseURL:', reportApi.defaults.baseURL);
-      const response = await reportApi.post(endpoint, { reportIds });
+      const endpoint = endpoints.reports.bulkApprove;
+      console.log('📡 BULK APPROVE REPORTS REQUEST:', `[POST]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.post(endpoint, { reportIds });
       return response;
     } catch (error) {
       console.error('❌ BULK APPROVE REPORTS ERROR:', error);

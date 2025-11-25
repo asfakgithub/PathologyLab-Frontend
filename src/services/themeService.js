@@ -1,20 +1,17 @@
-import axios from 'axios';
-
-const API_BASE_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}`;
+import apiClient from './apiClient';
 
 console.log('🎨 THEME SERVICE DEBUG:');
-console.log('  REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
-console.log('  API_BASE_URL:', API_BASE_URL);
+console.log('  API client baseURL:', apiClient.defaults.baseURL);
 
 class ThemeService {
   constructor() {
-    this.baseURL = `${API_BASE_URL}/themes`;
-    console.log('  THEME baseURL:', this.baseURL);
+    this.baseURL = `/themes`;
+    console.log('  THEME baseURL (relative):', this.baseURL);
   }
 
-  // Get authorization header
+  // Get authorization header (if needed, apiClient already adds auth token)
   getAuthHeader() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
@@ -22,12 +19,9 @@ class ThemeService {
   async getThemes(params = {}) {
     try {
       const fullURL = this.baseURL;
-      console.log('📡 GET THEMES REQUEST:', fullURL);
-      const response = await axios.get(this.baseURL, {
-        params,
-        headers: this.getAuthHeader()
-      });
-      return response.data;
+      console.log('📡 GET THEMES REQUEST:', fullURL, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(this.baseURL, { params });
+      return response;
     } catch (error) {
       console.error('❌ GET THEMES ERROR:', error);
       throw this.handleError(error);
@@ -59,13 +53,13 @@ class ThemeService {
         formData.append('favicon', files.favicon);
       }
 
-      const response = await axios.post(this.baseURL, formData, {
+      const response = await apiClient.post(this.baseURL, formData, {
         headers: {
           ...this.getAuthHeader(),
           'Content-Type': 'multipart/form-data'
         }
       });
-      return response.data;
+      return response;
     } catch (error) {
       throw this.handleError(error);
     }
@@ -96,13 +90,13 @@ class ThemeService {
         formData.append('favicon', files.favicon);
       }
 
-      const response = await axios.put(`${this.baseURL}/${themeId}`, formData, {
+      const response = await apiClient.put(`${this.baseURL}/${themeId}`, formData, {
         headers: {
           ...this.getAuthHeader(),
           'Content-Type': 'multipart/form-data'
         }
       });
-      return response.data;
+      return response;
     } catch (error) {
       throw this.handleError(error);
     }
@@ -111,10 +105,10 @@ class ThemeService {
   // Delete theme
   async deleteTheme(themeId) {
     try {
-      const response = await axios.delete(`${this.baseURL}/${themeId}`, {
+      const response = await apiClient.delete(`${this.baseURL}/${themeId}`, {
         headers: this.getAuthHeader()
       });
-      return response.data;
+      return response;
     } catch (error) {
       throw this.handleError(error);
     }
@@ -123,13 +117,13 @@ class ThemeService {
   // Clone theme
   async cloneTheme(themeId, name, description) {
     try {
-      const response = await axios.post(`${this.baseURL}/${themeId}/clone`, {
+      const response = await apiClient.post(`${this.baseURL}/${themeId}/clone`, {
         name,
         description
       }, {
         headers: this.getAuthHeader()
       });
-      return response.data;
+      return response;
     } catch (error) {
       throw this.handleError(error);
     }
@@ -138,10 +132,10 @@ class ThemeService {
   // Get theme preview CSS
   async getThemePreview(themeId) {
     try {
-      const response = await axios.get(`${this.baseURL}/${themeId}/preview`, {
+      const response = await apiClient.get(`${this.baseURL}/${themeId}/preview`, {
         headers: this.getAuthHeader()
       });
-      return response.data;
+      return response;
     } catch (error) {
       throw this.handleError(error);
     }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import "./model.css";
-import axios from 'axios';
+import apiClient from './src/services/apiClient';
+import { endpoints } from './src/services/api';
 
 function Model({ setOpenCreate, item }) {
     const [input, setInput] = useState({
@@ -21,33 +22,33 @@ function Model({ setOpenCreate, item }) {
 
     const handleSelectOption = async () => {
         try {
-            const response = await axios.get("http://localhost:8000/test/get");
-            const tests = response.data.data || [];
-            
+            const response = await apiClient.get(endpoints.tests.list);
+            const tests = response?.data || response || [];
+
             // Ensure tests have both _id and name properties
             const formattedTests = tests.map(test => ({
                 _id: test._id || test.id,  // Handle different ID fields
-                name: test.name || test.testName || "Unnamed Test"  // Fallback names
+                name: test.name || test.testName || 'Unnamed Test'  // Fallback names
             }));
-            
+
             setListOfTest(formattedTests);
-            
+
             // Set initial test value
             if (!item && formattedTests.length > 0) {
                 setInput(prev => ({ ...prev, test: formattedTests[0]._id }));
             }
         } catch (err) {
-            console.log("API failed, using dummy data", err);
-            
+            console.log('API failed, using dummy data', err);
+
             // Fallback dummy data with proper structure
             const dummyTests = [
-                { _id: "1", name: "Blood Test" },
-                { _id: "2", name: "Urine Test" },
-                { _id: "3", name: "X-Ray" }
+                { _id: '1', name: 'Blood Test' },
+                { _id: '2', name: 'Urine Test' },
+                { _id: '3', name: 'X-Ray' }
             ];
-            
+
             setListOfTest(dummyTests);
-            
+
             if (!item && dummyTests.length > 0) {
                 setInput(prev => ({ ...prev, test: dummyTests[0]._id }));
             }

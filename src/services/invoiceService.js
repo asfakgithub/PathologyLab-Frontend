@@ -1,59 +1,17 @@
-import axios from 'axios';
-
-// Invoice API configuration  
-const INVOICE_API_BASE_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}`;
+import apiClient from './apiClient';
+import { endpoints } from './api';
 
 console.log('🔍 INVOICE SERVICE DEBUG:');
-console.log('  REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
-console.log('  INVOICE_API_BASE_URL:', INVOICE_API_BASE_URL);
-
-// Create axios instance for invoice API (no auth required)
-const invoiceApi = axios.create({
-  baseURL: INVOICE_API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Response interceptor for invoice API
-invoiceApi.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
-  (error) => {
-    if (error.response) {
-      const { status, data } = error.response;
-      return Promise.reject({
-        message: data?.message || 'An error occurred',
-        error: data?.error || 'UNKNOWN_ERROR',
-        status: status,
-        details: data
-      });
-    } else if (error.request) {
-      return Promise.reject({
-        message: 'Network error. Please check your connection.',
-        error: 'NETWORK_ERROR',
-        status: 0
-      });
-    } else {
-      return Promise.reject({
-        message: error.message || 'An unexpected error occurred',
-        error: 'UNKNOWN_ERROR',
-        status: 0
-      });
-    }
-  }
-);
+console.log('  API client baseURL:', apiClient.defaults.baseURL);
 
 // Invoice API functions
 export const invoiceService = {
   // Create new invoice
   createInvoice: async (invoiceData) => {
     try {
-      const endpoint = '/api/v1/invoices/create';
-      console.log('📡 CREATE INVOICE REQUEST:', `[POST]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
-      const response = await invoiceApi.post(endpoint, invoiceData);
+      const endpoint = endpoints.invoices.create; // '/invoices'
+      console.log('📡 CREATE INVOICE REQUEST:', `[POST]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.post(endpoint, invoiceData);
       return response;
     } catch (error) {
       console.error('❌ CREATE INVOICE ERROR:', error);
@@ -64,10 +22,8 @@ export const invoiceService = {
   // Get all invoices
   getAllInvoices: async (params = {}) => {
     try {
-      const queryParams = new URLSearchParams(params).toString();
-      const endpoint = queryParams ? `/api/v1/invoices?${queryParams}` : '/api/v1/invoices';
-      console.log('📡 GET ALL INVOICES REQUEST:', `[GET]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
-      const response = await invoiceApi.get(endpoint);
+      console.log('📡 GET ALL INVOICES REQUEST:', `[GET]`, endpoints.invoices.list, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoints.invoices.list, { params });
       return response;
     } catch (error) {
       console.error('❌ GET ALL INVOICES ERROR:', error);
@@ -78,9 +34,9 @@ export const invoiceService = {
   // Get invoice by ID
   getInvoiceById: async (invoiceId) => {
     try {
-      const endpoint = `/api/v1/invoices/${invoiceId}`;
-      console.log('📡 GET INVOICE BY ID REQUEST:', `[GET]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
-      const response = await invoiceApi.get(endpoint);
+      const endpoint = endpoints.invoices.getById(invoiceId);
+      console.log('📡 GET INVOICE BY ID REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint);
       return response;
     } catch (error) {
       throw error;
@@ -90,9 +46,9 @@ export const invoiceService = {
   // Update invoice
   updateInvoice: async (invoiceId, updateData) => {
     try {
-      const endpoint = `/api/v1/invoices/update/${invoiceId}`;
-      console.log('📡 UPDATE INVOICE REQUEST:', `[PUT]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
-      const response = await invoiceApi.put(endpoint, updateData);
+      const endpoint = endpoints.invoices.update(invoiceId);
+      console.log('📡 UPDATE INVOICE REQUEST:', `[PUT]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.put(endpoint, updateData);
       return response;
     } catch (error) {
       throw error;
@@ -102,9 +58,9 @@ export const invoiceService = {
   // Update invoice status
   updateInvoiceStatus: async (invoiceId, status) => {
     try {
-      const endpoint = `/api/v1/invoices/status/${invoiceId}`;
-      console.log('📡 UPDATE INVOICE STATUS REQUEST:', `[PATCH]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
-      const response = await invoiceApi.patch(endpoint, { status });
+      const endpoint = `/invoices/status/${invoiceId}`;
+      console.log('📡 UPDATE INVOICE STATUS REQUEST:', `[PATCH]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.patch(endpoint, { status });
       return response;
     } catch (error) {
       throw error;
@@ -114,9 +70,9 @@ export const invoiceService = {
   // Add payment to invoice
   addPayment: async (invoiceId, paymentData) => {
     try {
-      const endpoint = `/api/v1/invoices/payment/${invoiceId}`;
-      console.log('📡 ADD PAYMENT TO INVOICE REQUEST:', `[POST]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
-      const response = await invoiceApi.post(endpoint, paymentData);
+      const endpoint = endpoints.invoices.addPayment(invoiceId);
+      console.log('📡 ADD PAYMENT TO INVOICE REQUEST:', `[POST]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.post(endpoint, paymentData);
       return response;
     } catch (error) {
       throw error;
@@ -126,9 +82,9 @@ export const invoiceService = {
   // Get invoices by patient ID
   getInvoicesByPatient: async (patientId) => {
     try {
-      const endpoint = `/api/v1/invoices/patient/${patientId}`;
-      console.log('📡 GET INVOICES BY PATIENT REQUEST:', `[GET]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
-      const response = await invoiceApi.get(endpoint);
+      const endpoint = `/invoices/patient/${patientId}`;
+      console.log('📡 GET INVOICES BY PATIENT REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint);
       return response;
     } catch (error) {
       throw error;
@@ -138,9 +94,9 @@ export const invoiceService = {
   // Delete invoice
   deleteInvoice: async (invoiceId) => {
     try {
-      const endpoint = `/api/v1/invoices/${invoiceId}`;
-      console.log('📡 DELETE INVOICE REQUEST:', `[DELETE]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
-      const response = await invoiceApi.delete(endpoint);
+      const endpoint = endpoints.invoices.delete(invoiceId);
+      console.log('📡 DELETE INVOICE REQUEST:', `[DELETE]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.delete(endpoint);
       return response;
     } catch (error) {
       throw error;
@@ -150,9 +106,9 @@ export const invoiceService = {
   // Get invoice statistics
   getInvoiceStats: async () => {
     try {
-      const endpoint = '/api/v1/invoices/stats/summary';
-      console.log('📡 GET INVOICE STATS REQUEST:', `[GET]`, endpoint, 'BaseURL:', invoiceApi.defaults.baseURL);
-      const response = await invoiceApi.get(endpoint);
+      const endpoint = endpoints.invoices.stats;
+      console.log('📡 GET INVOICE STATS REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint);
       return response;
     } catch (error) {
       throw error;

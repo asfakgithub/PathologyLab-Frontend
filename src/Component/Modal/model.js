@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './model.css';
-import axios from 'axios';
+import apiClient from '../../services/apiClient';
+import { endpoints } from '../../services/api';
 
 function Model({ setOpenCreate, item }) {
     const [input, setInput] = useState({
@@ -28,8 +29,9 @@ function Model({ setOpenCreate, item }) {
 
     const handleSelectOption = async () => {
         try {
-            const response = await axios.get("http://localhost:8000/test/get");
-            const dataOne = response.data.data?.length > 0 ? response.data.data : dummyTestData;
+            const response = await apiClient.get(endpoints.tests.list);
+            // apiClient returns response.data (server payload). Many endpoints return { data: [...] }
+            const dataOne = response?.data?.length > 0 ? response.data : dummyTestData;
 
             setListOfTest(dataOne);
 
@@ -54,26 +56,23 @@ function Model({ setOpenCreate, item }) {
 
     const handleCreateNew = async () => {
         if (!item) {
-            await axios.post("http://localhost:8000/patient/post", input)
-                .then(resp => {
-                    const dataOne = resp.data.data;
-                    setListOfTest(Array.isArray(dataOne) ? dataOne : Object.values(dataOne));
-                    window.location.reload();
-                })
-                .catch(err => {
-                    alert("Please fill every Details");
-                    console.log("err : ", err);
-                });
+            try {
+                const resp = await apiClient.post(endpoints.patients.create, input);
+                const dataOne = resp?.data || resp;
+                setListOfTest(Array.isArray(dataOne) ? dataOne : Object.values(dataOne));
+                window.location.reload();
+            } catch (err) {
+                alert('Please fill every Details');
+                console.log('err : ', err);
+            }
         } else {
-            await axios.put(`http://localhost:8000/patient/${item._id}`, input)
-                .then(resp => {
-                    console.log(resp);
-                    window.location.reload();
-                })
-                .catch(err => {
-                    alert("Something Went Wrong");
-                    console.log(err);
-                });
+            try {
+                await apiClient.put(endpoints.patients.update(item._id), input);
+                window.location.reload();
+            } catch (err) {
+                alert('Something Went Wrong');
+                console.log(err);
+            }
         }
     };
 
