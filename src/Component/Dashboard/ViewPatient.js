@@ -238,7 +238,14 @@ const navigate = useNavigate();
         });
 
         if (resultsForTest.length > 0) {
-          calls.push(patientService.addTestResults(patientId, { testId: test.testId, results: resultsForTest, reportedBy: user?._id }));
+          calls.push(patientService.addTestResults(patientId, { 
+            testId: test.testId, 
+            results: resultsForTest, 
+            reportedBy: user?._id,
+            testResult: test.testResult,
+            testNotes: test.notes,
+            status: test.status
+          }));
         }
       });
 
