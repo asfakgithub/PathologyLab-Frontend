@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { getTests, deleteTest, createTest, updateTest } from '../../services/api';
+import { getTests, deleteTest, createTest, updateTest, getTestStats } from '../../services/api';
 import {
   Box,
   Typography,
@@ -35,6 +35,7 @@ import TestTube1 from '../Images/TestTube1.svg';
 function TestManagement() {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
@@ -71,6 +72,7 @@ function TestManagement() {
 
   const [error, setError] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [testStats, setTestStats] = useState(null);
 
   // Common test categories
   const testCategories = [
@@ -103,16 +105,38 @@ function TestManagement() {
     try {
       setLoading(true);
       const response = await getTests();
-      console.log('Fetched tests response:', response?.length);
-      if (response && response.data) {
-        // Handle different response structures
-        const testsData = Array.isArray(response.data) ? response.data : response.data.data || [];
-        setTests(testsData);
+      console.log('Fetched tests response (raw):', response);
+
+      // Normalise different shapes returned by API / interceptors
+      // Case A: interceptor returned response.data (object with `data` field)
+      // Case B: direct axios response was returned (unlikely with interceptors)
+      let testsData = [];
+
+      if (!response) {
+        testsData = [];
+      } else if (Array.isArray(response)) {
+        // If response is an array of tests
+        testsData = response;
+      } else if (response.data && Array.isArray(response.data)) {
+        testsData = response.data;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        testsData = response.data.data;
+      } else if (response.data && response.data.length === 0) {
+        testsData = [];
+      } else if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+        // If response.data is an object (e.g., wrapper), try to find array fields
+        testsData = response.data.data || response.data.tests || [];
+      } else if (response.data === undefined && response.data !== null && typeof response === 'object') {
+        // Fallback when interceptor already returned body
+        testsData = response.data || response.data?.data || [];
       } else {
-        setTests([]);
+        testsData = response.data || response;
       }
+
+      console.log('Normalized testsData length:', Array.isArray(testsData) ? testsData.length : 'not-array', testsData);
+      setTests(Array.isArray(testsData) ? testsData : []);
     } catch (err) {
-      console.error('Error fetching tests:', err);
+      console.error('Error fetching tests:', err, 'err.response:', err?.response || err?.details || err?.message);
       showSnackbar('Failed to load tests', 'error');
       setTests([]);
     } finally {
@@ -120,9 +144,28 @@ function TestManagement() {
     }
   }, []);
 
+  // Fetch test statistics (category/sample/price)
+  const fetchTestStats = useCallback(async () => {
+    try {
+      setStatsLoading(true);
+      const res = await getTestStats();
+      console.log('Fetched test stats response (raw):', res);
+
+      // res may already be the data object depending on interceptor
+      const payload = res?.data ? res.data : res;
+      setTestStats(payload?.data || payload);
+    } catch (err) {
+      console.error('Error fetching test stats:', err);
+      setTestStats(null);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTests();
-  }, [fetchTests]);
+    fetchTestStats();
+  }, [fetchTests, fetchTestStats]);
 
   // Show snackbar
   const showSnackbar = (message, severity = 'success') => {
@@ -382,6 +425,36 @@ function TestManagement() {
         >
           Add New Test
         </Button>
+      </Box>
+
+      {/* Test Statistics Summary */}
+      <Box mb={3}>
+        {statsLoading ? (
+          <Typography variant="body2" color="text.secondary">Loading analysis...</Typography>
+        ) : testStats ? (
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            <Grid item>
+              <Card sx={{ p: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">Total Tests</Typography>
+                <Typography variant="h5" fontWeight="bold">{testStats.totalTests ?? '—'}</Typography>
+              </Card>
+            </Grid>
+            <Grid item>
+              <Card sx={{ p: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">Average Price</Typography>
+                <Typography variant="h5" fontWeight="bold">₹{Math.round(testStats.averagePrice || 0)}</Typography>
+              </Card>
+            </Grid>
+            <Grid item>
+              <Card sx={{ p: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">Categories</Typography>
+                <Typography variant="h6" fontWeight="bold">{(testStats.categoryDistribution || []).length}</Typography>
+              </Card>
+            </Grid>
+          </Grid>
+        ) : (
+          <Typography variant="body2" color="text.secondary">No analysis available</Typography>
+        )}
       </Box>
 
       {/* Search */}

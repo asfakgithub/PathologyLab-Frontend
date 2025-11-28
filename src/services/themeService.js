@@ -31,34 +31,41 @@ class ThemeService {
   // Create new theme
   async createTheme(themeData, files = {}) {
     try {
-      const formData = new FormData();
-      
-      // Add theme data
-      Object.keys(themeData).forEach(key => {
-        if (typeof themeData[key] === 'object' && themeData[key] !== null) {
-          formData.append(key, JSON.stringify(themeData[key]));
-        } else {
-          formData.append(key, themeData[key]);
-        }
-      });
+      // If there are files to upload, use multipart/form-data
+      const hasFiles = files && (files.logo || files.backgroundImage || files.favicon);
 
-      // Add files
-      if (files.logo) {
-        formData.append('logo', files.logo);
-      }
-      if (files.backgroundImage) {
-        formData.append('backgroundImage', files.backgroundImage);
-      }
-      if (files.favicon) {
-        formData.append('favicon', files.favicon);
-      }
+      let response;
+      if (hasFiles) {
+        const formData = new FormData();
+        // Add theme data as JSON fields
+        Object.keys(themeData).forEach(key => {
+          if (typeof themeData[key] === 'object' && themeData[key] !== null) {
+            formData.append(key, JSON.stringify(themeData[key]));
+          } else if (themeData[key] !== undefined && themeData[key] !== null) {
+            formData.append(key, themeData[key]);
+          }
+        });
 
-      const response = await apiClient.post(this.baseURL, formData, {
-        headers: {
-          ...this.getAuthHeader(),
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+        // Add files
+        if (files.logo) formData.append('logo', files.logo);
+        if (files.backgroundImage) formData.append('backgroundImage', files.backgroundImage);
+        if (files.favicon) formData.append('favicon', files.favicon);
+
+        response = await apiClient.post(this.baseURL, formData, {
+          headers: {
+            ...this.getAuthHeader(),
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      } else {
+        // No files: send JSON body so nested objects are preserved
+        response = await apiClient.post(this.baseURL, themeData, {
+          headers: {
+            ...this.getAuthHeader(),
+            'Content-Type': 'application/json'
+          }
+        });
+      }
       return response;
     } catch (error) {
       throw this.handleError(error);
@@ -80,34 +87,38 @@ class ThemeService {
       });
 
       // Add files
-      if (files.logo) {
-        formData.append('logo', files.logo);
-      }
-      if (files.backgroundImage) {
-        formData.append('backgroundImage', files.backgroundImage);
-      }
-      if (files.favicon) {
-        formData.append('favicon', files.favicon);
-      }
+        const hasFiles = files && (files.logo || files.backgroundImage || files.favicon);
 
-      const response = await apiClient.put(`${this.baseURL}/${themeId}`, formData, {
-        headers: {
-          ...this.getAuthHeader(),
-          'Content-Type': 'multipart/form-data'
+        let response;
+        if (hasFiles) {
+          const formData = new FormData();
+          Object.keys(themeData).forEach(key => {
+            if (typeof themeData[key] === 'object' && themeData[key] !== null) {
+              formData.append(key, JSON.stringify(themeData[key]));
+            } else if (themeData[key] !== undefined && themeData[key] !== null) {
+              formData.append(key, themeData[key]);
+            }
+          });
+
+          if (files.logo) formData.append('logo', files.logo);
+          if (files.backgroundImage) formData.append('backgroundImage', files.backgroundImage);
+          if (files.favicon) formData.append('favicon', files.favicon);
+
+          response = await apiClient.put(`${this.baseURL}/${themeId}`, formData, {
+            headers: {
+              ...this.getAuthHeader(),
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+        } else {
+          // Send JSON for updates without files so nested objects are preserved
+          response = await apiClient.put(`${this.baseURL}/${themeId}`, themeData, {
+            headers: {
+              ...this.getAuthHeader(),
+              'Content-Type': 'application/json'
+            }
+          });
         }
-      });
-      return response;
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
-
-  // Delete theme
-  async deleteTheme(themeId) {
-    try {
-      const response = await apiClient.delete(`${this.baseURL}/${themeId}`, {
-        headers: this.getAuthHeader()
-      });
       return response;
     } catch (error) {
       throw this.handleError(error);
@@ -151,9 +162,32 @@ class ThemeService {
     const root = document.documentElement;
     
     // Apply color variables
-    Object.entries(theme.colors).forEach(([key, value]) => {
-      root.style.setProperty(`--color-${key}`, value);
-    });
+      // Helper to convert hex color (#rrggbb or #rgb) to 'r,g,b'
+      const hexToRgbString = (hex) => {
+        if (typeof hex !== 'string') return null;
+        const h = hex.replace('#', '').trim();
+        if (h.length === 3) {
+          const r = parseInt(h[0] + h[0], 16);
+          const g = parseInt(h[1] + h[1], 16);
+          const b = parseInt(h[2] + h[2], 16);
+          return `${r}, ${g}, ${b}`;
+        } else if (h.length === 6) {
+          const r = parseInt(h.substring(0,2), 16);
+          const g = parseInt(h.substring(2,4), 16);
+          const b = parseInt(h.substring(4,6), 16);
+          return `${r}, ${g}, ${b}`;
+        }
+        return null;
+      };
+
+      Object.entries(theme.colors).forEach(([key, value]) => {
+        root.style.setProperty(`--color-${key}`, value);
+        // If value is a hex color, also expose an RGB var for rgba(...) usage
+        const rgb = hexToRgbString(value);
+        if (rgb) {
+          root.style.setProperty(`--color-${key}-rgb`, rgb);
+        }
+      });
 
     // Apply typography
     if (theme.typography) {
@@ -210,7 +244,14 @@ class ThemeService {
     }
 
     // Store theme in localStorage for persistence
-    localStorage.setItem('currentTheme', JSON.stringify(theme));
+    // Persist a canonical theme key (lowercased) and the full theme object
+    try {
+      const canonicalKey = (theme.key || theme.name || '').toString().toLowerCase();
+      if (canonicalKey) localStorage.setItem('pathologylab-theme', canonicalKey);
+      localStorage.setItem('pathologylab-theme-object', JSON.stringify(theme));
+    } catch (err) {
+      console.warn('Failed to persist theme to localStorage:', err);
+    }
   }
 
   // Save user theme preference

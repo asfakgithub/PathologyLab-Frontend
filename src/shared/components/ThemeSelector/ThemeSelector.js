@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '../../../context/ThemeContext';
+import { useTheme } from '../../../core/hooks/useTheme';
 import './ThemeSelector.css';
 
 const ThemeSelector = ({ className = '', showLabel = true }) => {

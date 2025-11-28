@@ -25,6 +25,7 @@
     "axios": "^1.10.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
+    "msw": "^2.12.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.6.3",
@@ -35,13 +36,24 @@
     "@babel/core": "^7.28.0",
     "babel-loader": "^10.0.0",
     "eslint-config-react-app": "^7.0.1",
-    "jest": "^27.5.1",
     "webpack": "^5.100.1",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.2"
   },
   "eslintConfig": {
     "extends": "react-app"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "/node_modules/(?!axios)/"
+    ],
+    "moduleNameMapper": {
+      "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+      "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js"
+    },
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/setupTests.js"
+    ]
   },
   "browserslist": {
     "production": [

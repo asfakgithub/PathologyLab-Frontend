@@ -78,7 +78,7 @@ import {
   Preview as PreviewIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../../context/AuthContext';
-import { useTheme } from '../../../context/ThemeContext';
+import { useTheme } from '../../../core/hooks/useTheme';
 import ThemeSelector from '../../common/ThemeSelector/ThemeSelector';
 import themeService from '../../../services/themeService';
 import settingsService from '../../../services/settingsService';

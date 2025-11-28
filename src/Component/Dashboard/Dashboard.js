@@ -36,6 +36,7 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { SettingsContext } from '../../context/SettingsContext';
+import { useTheme } from '@mui/material/styles';
 
 const drawerWidth = 280;
 
@@ -44,6 +45,7 @@ const Dashboard = () => {
   const location = useLocation();
   const { user, logout, hasAnyRole } = useAuth();
   const { settings } = useContext(SettingsContext);
+  const muiTheme = useTheme();
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -63,6 +65,10 @@ const Dashboard = () => {
 
   // Fetch unread message count and poll periodically
   useEffect(() => {
+    if (!settings.notifications?.notificationsEnabled) {
+      setMessageCount(0);
+      return;
+    }
     let mounted = true;
     const fetchCounts = async () => {
       try {
@@ -82,7 +88,7 @@ const Dashboard = () => {
       mounted = false;
       clearInterval(id);
     };
-  }, []);
+  }, [settings.notifications?.notificationsEnabled]);
 
   const handleLogout = async () => {
     handleProfileMenuClose();
@@ -130,7 +136,8 @@ const Dashboard = () => {
       text: 'Message',
       icon: <Message/>,
       path: '/dashboard/analytics',
-      roles: ['master', 'admin']
+      roles: ['master', 'admin'],
+      setting: 'notificationsEnabled'
     },
     {
       text: 'Settings',
@@ -140,9 +147,12 @@ const Dashboard = () => {
     }
   ];
 
-  const filteredMenuItems = menuItems.filter(item => 
-    hasAnyRole(item.roles)
-  );
+  const filteredMenuItems = menuItems.filter(item => {
+    if (item.setting && (!settings.notifications || !settings.notifications[item.setting])) {
+        return false;
+    }
+    return hasAnyRole(item.roles)
+  });
 
   const getRoleColor = (role) => {
     switch (role) {
@@ -158,7 +168,7 @@ const Dashboard = () => {
   const drawer = (
     <Box>
       {/* Header */}
-      <Box sx={{ p: 3, textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+      <Box sx={{ p: 3, textAlign: 'center', borderBottom: `1px solid ${muiTheme.palette.divider}` }}>
         <Typography variant="h5" fontWeight="bold" color="primary">
           {settings.organization?.name || 'PathologyLab'}
         </Typography>
@@ -168,7 +178,7 @@ const Dashboard = () => {
       </Box>
 
       {/* User Info */}
-      <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
+      <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'background.paper' }}>
         <Avatar 
           sx={{ 
             width: 56, 
@@ -260,11 +270,13 @@ const Dashboard = () => {
           </Typography>
 
           {/* Notifications */}
-          <IconButton color="inherit" sx={{ mr: 1 }} onClick={() => navigate('/dashboard/analytics')}>
-            <Badge badgeContent={messageCount} color="error">
-              <Notifications />
-            </Badge>
-          </IconButton>
+          {settings.notifications?.notificationsEnabled &&
+            <IconButton color="inherit" sx={{ mr: 1 }} onClick={() => navigate('/dashboard/analytics')}>
+                <Badge badgeContent={messageCount} color="error">
+                <Notifications />
+                </Badge>
+            </IconButton>
+          }
 
           {/* Profile Menu */}
           <IconButton
@@ -319,7 +331,8 @@ const Dashboard = () => {
             display: { xs: 'block', sm: 'none' },
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
-              width: drawerWidth 
+              width: drawerWidth,
+              backgroundColor: muiTheme.palette.background.paper
             },
           }}
         >
@@ -334,7 +347,7 @@ const Dashboard = () => {
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
               width: drawerWidth,
-              borderRight: '1px solid rgba(0,0,0,0.1)'
+              borderRight: `1px solid ${muiTheme.palette.divider}`
             },
           }}
           open
@@ -350,7 +363,7 @@ const Dashboard = () => {
           flexGrow: 1,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
-          bgcolor: 'grey.50'
+          bgcolor: 'background.default'
         }}
       >
         <Toolbar /> {/* Spacer for AppBar */}

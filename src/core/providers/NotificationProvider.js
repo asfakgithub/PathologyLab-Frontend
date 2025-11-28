@@ -12,9 +12,13 @@ function SlideTransition(props) {
 }
 
 export const NotificationProvider = ({ children }) => {
-    const [notifications, setNotifications] = useState([]);
+    const [, setNotifications] = useState([]);
     const [open, setOpen] = useState(false);
     const [currentNotification, setCurrentNotification] = useState(null);
+
+    const removeNotification = useCallback((id) => {
+        setNotifications(prev => prev.filter(notif => notif.id !== id));
+    }, []);
 
     const showNotification = useCallback((message, type = 'info', duration = 6000) => {
         const id = Date.now();
@@ -40,11 +44,7 @@ export const NotificationProvider = ({ children }) => {
         }, duration);
 
         return id;
-    }, [open]);
-
-    const removeNotification = useCallback((id) => {
-        setNotifications(prev => prev.filter(notif => notif.id !== id));
-    }, []);
+    }, [open, removeNotification]);
 
     const handleClose = useCallback((event, reason) => {
         if (reason === 'clickaway') {

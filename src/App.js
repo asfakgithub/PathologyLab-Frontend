@@ -3,8 +3,8 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
-import { useTheme } from './context/ThemeContext';
+import { ThemeProvider } from './core/providers/ThemeProvider.js';
+import { useTheme } from './core/hooks/useTheme.js';
 import { SettingsProvider } from './context/SettingsContext';
 import ThemeHandler from './Component/common/ThemeHandler';
 import ProtectedRoute from './Component/common/ProtectedRoute';
@@ -25,6 +25,7 @@ import Report from './Component/Pages/ReportPage/report';
 
 import './App.css';
 import ViewPatient from './Component/Dashboard/ViewPatient';
+
 import PateintReport from './Component/Dashboard/PateintReport';
 import ErrorBoundary from './Component/common/ErrorBoundary';
 
@@ -150,6 +151,39 @@ const MuiThemeCreator = ({ children }) => {
             backgroundColor: appTheme.colors.surfaceSecondary,
           },
         },
+      },
+      MuiTooltip: {
+        styleOverrides: {
+          tooltip: {
+            backgroundColor: appTheme.colors.surface,
+            color: appTheme.colors.text,
+            boxShadow: appTheme.shadows.sm,
+            fontSize: appTheme.typography.fontSize.sm,
+            borderRadius: appTheme.borderRadius.sm,
+          },
+          arrow: {
+            color: appTheme.colors.surface,
+          }
+        }
+      },
+      MuiDrawer: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: appTheme.colors.surface,
+            color: appTheme.colors.text,
+            borderRight: `1px solid ${appTheme.colors.border}`,
+          }
+        }
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            backgroundColor: appTheme.colors.surface,
+            color: appTheme.colors.text,
+            boxShadow: 'none',
+            borderBottom: `1px solid ${appTheme.colors.border}`
+          }
+        }
       },
     },
     shape: {
@@ -321,6 +355,8 @@ function AppContent() {
                 </ProtectedRoute>
               } 
             />
+
+
 
             {/* Patient report preview - reads ?id= or last path segment */}
             <Route

@@ -10,7 +10,7 @@ const initialState = {
     { widgetKey: 'recent_reports', isVisible: true },
     { widgetKey: 'test_status_chart', isVisible: true },
   ],
-  theme: { themeName: 'default' },
+  theme: { themeName: 'Light' },
   invoice: {
     defaultGST: 0,
     discountPercent: 0,

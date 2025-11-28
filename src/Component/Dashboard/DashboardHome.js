@@ -31,12 +31,12 @@ import { SettingsContext } from '../../context/SettingsContext';
 import api, { getPatientStats, getReportStats, getInvoiceStats, getPatients, getReports } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 
-const StatCard = ({ title, value, icon, color, change, changeText }) => (
+const StatCard = ({ title, value, icon, colorVar = 'var(--color-primary)', rgbVar = '--color-primary-rgb', change, changeText }) => (
   <Card 
     sx={{ 
       height: '100%',
-      background: `linear-gradient(135deg, ${color}15, ${color}25)`,
-      border: `1px solid ${color}40`,
+      background: `linear-gradient(135deg, rgba(var(${rgbVar}), 0.08), rgba(var(${rgbVar}), 0.18))`,
+      border: `1px solid rgba(var(${rgbVar}), 0.25)`,
       transition: 'transform 0.2s',
       '&:hover': {
         transform: 'translateY(-4px)',
@@ -47,7 +47,7 @@ const StatCard = ({ title, value, icon, color, change, changeText }) => (
     <CardContent>
       <Box display="flex" alignItems="center" justifyContent="space-between">
         <Box>
-          <Typography variant="h3" fontWeight="bold" color={color}>
+          <Typography variant="h3" fontWeight="bold" color={colorVar}>
             {value}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
@@ -72,7 +72,7 @@ const StatCard = ({ title, value, icon, color, change, changeText }) => (
             </Box>
           )}
         </Box>
-        <Avatar sx={{ bgcolor: color, width: 56, height: 56 }}>
+        <Avatar sx={{ bgcolor: colorVar, width: 56, height: 56 }}>
           {icon}
         </Avatar>
       </Box>
@@ -317,7 +317,8 @@ const DashboardHome = () => {
               title="Total Patients"
               value={stats.patients.total.toLocaleString()}
               icon={<PeopleIcon />}
-              color="#1976d2"
+              colorVar="var(--color-primary)"
+              rgbVar="--color-primary-rgb"
               change={stats.patients.change}
               changeText="this month"
             />
@@ -330,7 +331,8 @@ const DashboardHome = () => {
               title="Tests Conducted"
               value={stats.tests.total.toLocaleString()}
               icon={<ScienceIcon />}
-              color="#2e7d32"
+              colorVar="var(--color-success)"
+              rgbVar="--color-success-rgb"
               change={stats.tests.change}
               changeText="this month"
             />
@@ -343,7 +345,8 @@ const DashboardHome = () => {
               title="Total Invoices"
               value={stats.invoices.total.toLocaleString()}
               icon={<ReceiptIcon />}
-              color="#ed6c02"
+              colorVar="var(--color-warning)"
+              rgbVar="--color-warning-rgb"
               change={stats.invoices.change}
               changeText="this month"
             />
@@ -356,7 +359,8 @@ const DashboardHome = () => {
               title="Total Invoice Value"
               value={`₹${(stats.invoices.totalAmount || 0).toLocaleString()}`}
               icon={<TrendingUpIcon />}
-              color="#6a1b9a"
+              colorVar="var(--color-accent)"
+              rgbVar="--color-accent-rgb"
               change={0}
               changeText=""
             />
@@ -369,7 +373,8 @@ const DashboardHome = () => {
               title="Total Due"
               value={`₹${(stats.invoices.totalDue || 0).toLocaleString()}`}
               icon={<ScheduleIcon />}
-              color="#d32f2f"
+              colorVar="var(--color-error)"
+              rgbVar="--color-error-rgb"
               change={0}
               changeText=""
             />
@@ -382,7 +387,8 @@ const DashboardHome = () => {
               title="Pending Invoices"
               value={(stats.invoices.pendingCount || 0).toLocaleString()}
               icon={<PendingIcon />}
-              color="#ff9800"
+              colorVar="var(--color-warning)"
+              rgbVar="--color-warning-rgb"
               change={0}
               changeText=""
             />

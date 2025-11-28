@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -131,7 +131,7 @@ const InvoiceManagementNew = () => {
         if (invoiceToDelete) {
               try {
               await sendSystemNotification({
-                message: `Invoice ${invoiceToDelete.invoiceNumber || invoiceToDelete.invoiceId || invoiceToDelete.invoiceId} for patient ${invoiceToDelete.patientName || invoiceToDelete.patientId || 'Unknown'} has been deleted.`,
+                message: `Invoice ${invoiceToDelete.invoiceNumber || invoiceToDelete.invoiceId} for patient ${invoiceToDelete.patientName || invoiceToDelete.patientId || 'Unknown'} has been deleted.`,
                 recipient: selectedRecipient?._id,
                 recipientEmail: selectedRecipient?.email
               });
@@ -460,35 +460,14 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
     // Invoice Information
     invoiceNumber: '',
     testDetails: [],
-    discountAmount: 0,
+    discountPercentage: settings?.discountPercent || 0,
     gstPercentage: settings?.defaultGST || 18,
     additionalCharges: settings?.additionalCharges || 0,
     notes: '',
     paymentMethod: 'cash'
   });
 
-  useEffect(() => {
-    if (open) {
-      fetchTests();
-      if (invoice) {
-        setFormData({ ...invoice, gstPercentage: invoice.gstPercentage || settings?.defaultGST || 18 });
-      } else {
-        resetForm();
-      }
-    }
-  }, [open, invoice, settings]);
-
-  const fetchTests = async () => {
-    try {
-      const response = await getTests();
-      const testsData = response.data?.data || response.data || [];
-      setTests(testsData);
-    } catch (error) {
-      console.error('Failed to fetch tests:', error);
-    }
-  };
-
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({
       patientName: '',
       patientAge: '',
@@ -500,14 +479,41 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
       referredBy: '',
       invoiceNumber: '',
       testDetails: [],
-      discountAmount: 0,
+      discountPercentage: settings?.discountPercent || 0,
       gstPercentage: settings?.defaultGST || 18,
       additionalCharges: settings?.additionalCharges || 0,
       notes: '',
       paymentMethod: 'cash'
     });
     setActiveStep(0);
+  }, [settings]);
+
+  useEffect(() => {
+    if (open) {
+      fetchTests();
+      if (invoice) {
+        setFormData({ 
+            ...invoice, 
+            gstPercentage: invoice.gstPercentage || settings?.defaultGST || 18,
+            discountPercentage: invoice.discountPercentage || settings?.discountPercent || 0,
+            additionalCharges: invoice.additionalCharges || settings?.additionalCharges || 0
+        });
+      } else {
+        resetForm();
+      }
+    }
+  }, [open, invoice, settings, resetForm]);
+
+  const fetchTests = async () => {
+    try {
+      const response = await getTests();
+      const testsData = response.data?.data || response.data || [];
+      setTests(testsData);
+    } catch (error) {
+      console.error('Failed to fetch tests:', error);
+    }
   };
+
 
   const handleNext = () => {
     setActiveStep((prevStep) => prevStep + 1);
@@ -584,7 +590,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
   const calculateTotals = () => {
     const testDetailsArray = formData.testDetails || [];
     const subtotal = testDetailsArray.reduce((sum, test) => sum + (test.testPrice || 0), 0);
-    const discountAmount = formData.discountAmount || 0;
+    const discountAmount = (subtotal * (formData.discountPercentage || 0)) / 100;
     const taxableAmount = subtotal - discountAmount;
     const gstAmount = (taxableAmount * (formData.gstPercentage || 0)) / 100;
     const additionalCharges = formData.additionalCharges || 0;
@@ -745,12 +751,12 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
                 <Grid item xs={12} sm={4}>
                   <TextField
                     fullWidth
-                    label="Discount Amount"
+                    label="Discount Percentage"
                     type="number"
-                    value={formData.discountAmount}
-                    onChange={(e) => handleInputChange('discountAmount', parseFloat(e.target.value) || 0)}
+                    value={formData.discountPercentage}
+                    onChange={(e) => handleInputChange('discountPercentage', parseFloat(e.target.value) || 0)}
                     InputProps={{
-                      startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
                     }}
                   />
                 </Grid>

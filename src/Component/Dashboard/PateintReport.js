@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import patientService from '../../services/patientService';
+import { SettingsContext } from '../../context/SettingsContext';
 
 const PateintReport = (props) => {
   const [loading, setLoading] = useState(true);
@@ -8,6 +9,7 @@ const PateintReport = (props) => {
   const [patient, setPatient] = useState(null);
   const [enrichedTests, setEnrichedTests] = useState([]);
   const [resultsMap, setResultsMap] = useState({});
+  const { settings } = useContext(SettingsContext);
 
   const getPatientIdFromLocation = () => {
     if (props && props.patientId) return props.patientId;
@@ -105,7 +107,7 @@ const PateintReport = (props) => {
       <style>{'@media print { .no-print { display: none !important; } }'}</style>
 
       <div style={styles.header}>
-        <h1 style={styles.headerTitle}>THYRO DIAGNOSTIC</h1>
+        <h1 style={styles.headerTitle}>{settings.organization?.name || 'THYRO DIAGNOSTIC'}</h1>
         <p style={styles.headerSubtitle}>Medical Laboratory Report</p>
       </div>
 
@@ -318,7 +320,7 @@ const styles = {
     textAlign: 'center',
     borderTop: '3px solid #2c5aa0',
     paddingTop: '15px',
-    marginTop: '30px'
+marginTop: '30px'
   },
   footerText: {
     margin: '10px 0',

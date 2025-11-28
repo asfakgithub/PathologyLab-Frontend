@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 // Theme definitions
 export const themes = {
@@ -387,11 +387,11 @@ export const ThemeProvider = ({ children }) => {
     
   }, [currentTheme]);
 
-  const changeTheme = (themeName) => {
+  const changeTheme = useCallback((themeName) => {
     if (themes[themeName]) {
       setCurrentTheme(themeName);
     }
-  };
+  }, []);
 
   const value = {
     currentTheme,

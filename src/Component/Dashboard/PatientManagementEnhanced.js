@@ -31,7 +31,7 @@ import {
 import { getPatients, deletePatient } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CreateOrEditPatient from './CreateOrEditPatient';
-import { useNavigate } from 'react-router-dom';
+import PatientDetectiveBoard from './PatientDetectiveBoard';
 
 const PatientManagementEnhanced = () => {
   const [patients, setPatients] = useState([]);
@@ -44,6 +44,8 @@ const PatientManagementEnhanced = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
   const [invoiceMode, setInvoiceMode] = useState(false);
+  const [isDetectiveBoardOpen, setIsDetectiveBoardOpen] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState(null);
 
   useEffect(() => { fetchPatients(); }, []);
 
@@ -61,6 +63,7 @@ const PatientManagementEnhanced = () => {
 
   const handleCreatePatient = () => { setEditingPatient(null); setInvoiceMode(false); setOpenDialog(true); };
   const handleEditPatient = (patient) => { setEditingPatient(patient); setInvoiceMode(false); setOpenDialog(true); };
+  const handleViewPatient = (patientId) => { setSelectedPatientId(patientId); setIsDetectiveBoardOpen(true); };
 
   const handleDeletePatient = async (patientId) => {
     if (!window.confirm('Are you sure you want to delete this patient?')) return;
@@ -74,8 +77,6 @@ const PatientManagementEnhanced = () => {
   };
 
   const handleCreateInvoice = (patient) => { setEditingPatient(patient); setInvoiceMode(true); setOpenDialog(true); };
-
-  const navigateTo = useNavigate();
 
   const filteredPatients = patients.filter(patient =>
     patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -136,7 +137,7 @@ const PatientManagementEnhanced = () => {
                   <TableCell>{patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Tooltip title="View"><IconButton size="small" color="primary" onClick={() => navigateTo(`/view/${patient._id}`)}><ViewIcon /></IconButton></Tooltip>
+                      <Tooltip title="View"><IconButton size="small" color="primary" onClick={() => handleViewPatient(patient._id)}><ViewIcon /></IconButton></Tooltip>
                       <Tooltip title="Edit"><IconButton size="small" onClick={() => handleEditPatient(patient)} color="secondary"><EditIcon /></IconButton></Tooltip>
                       <Tooltip title="Create Invoice"><IconButton size="small" color="success" onClick={() => handleCreateInvoice(patient)}><InvoiceIcon /></IconButton></Tooltip>
                       <Tooltip title="Delete"><IconButton size="small" onClick={() => handleDeletePatient(patient._id)} color="error"><DeleteIcon /></IconButton></Tooltip>
@@ -158,6 +159,14 @@ const PatientManagementEnhanced = () => {
         onSuccess={() => { setOpenDialog(false); fetchPatients(); if (invoiceMode) setSuccess('Invoice created successfully for patient'); else setSuccess(editingPatient ? 'Patient updated successfully' : 'Patient created successfully'); }}
         onError={(error) => setError(error)}
       />
+
+      {isDetectiveBoardOpen && (
+        <PatientDetectiveBoard
+          isOpen={isDetectiveBoardOpen}
+          onClose={() => setIsDetectiveBoardOpen(false)}
+          patientId={selectedPatientId}
+        />
+      )}
     </div>
   );
 };

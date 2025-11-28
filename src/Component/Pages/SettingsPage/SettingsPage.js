@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { SettingsContext } from '../../../context/SettingsContext';
 import themeService from '../../../services/themeService';
+import ThemeEditorDialog from './ThemeEditorDialog';
 import {
   Container,
   Grid,
@@ -11,15 +12,15 @@ import {
   TextField,
   Switch,
   FormControlLabel,
-  Select,
-  MenuItem,
   Button,
   CircularProgress,
   Box,
   Snackbar,
   Alert,
-  FormControl
+  CardActions,
+  Divider
 } from '@mui/material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, CheckCircle as ApplyIcon } from '@mui/icons-material';
 
 const SettingsPage = () => {
   const { settings: contextSettings, loading: contextLoading, updateSettings } = useContext(SettingsContext);
@@ -28,24 +29,28 @@ const SettingsPage = () => {
   const [themes, setThemes] = useState([]);
   const [themesLoading, setThemesLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [themeEditorOpen, setThemeEditorOpen] = useState(false);
+  const [editingTheme, setEditingTheme] = useState(null);
+
+  const fetchThemes = async () => {
+    try {
+      setThemesLoading(true);
+      const themesData = await themeService.getThemes();
+      if (themesData?.data?.themes) {
+        setThemes(themesData.data.themes);
+      }
+    } catch (error) {
+      console.error('Error fetching themes:', error);
+    } finally {
+      setThemesLoading(false);
+    }
+  };
 
   useEffect(() => {
     setLocalSettings(contextSettings);
   }, [contextSettings]);
 
   useEffect(() => {
-    const fetchThemes = async () => {
-      try {
-        const themesData = await themeService.getThemes();
-        if (themesData?.data?.themes) {
-          setThemes(themesData.data.themes);
-        }
-      } catch (error) {
-        console.error('Error fetching themes:', error);
-      } finally {
-        setThemesLoading(false);
-      }
-    };
     fetchThemes();
   }, []);
 
@@ -86,6 +91,40 @@ const SettingsPage = () => {
     } catch (error) {
       setSnackbar({ open: true, message: 'Failed to save settings.', severity: 'error' });
       console.error('Error saving settings:', error);
+    }
+  };
+  
+  const handleApplyTheme = (themeName) => {
+    handleInputChange('theme', 'themeName', themeName);
+    // Maybe save immediately? For now, user has to click main save button.
+    setSnackbar({ open: true, message: `${themeName} theme applied. Save settings to make it permanent.`, severity: 'info' });
+  };
+  
+  const handleOpenThemeEditor = (theme = null) => {
+    setEditingTheme(theme);
+    setThemeEditorOpen(true);
+  };
+
+  const handleCloseThemeEditor = () => {
+    setThemeEditorOpen(false);
+    setEditingTheme(null);
+  };
+  
+  const handleThemeSaveSuccess = () => {
+    handleCloseThemeEditor();
+    fetchThemes(); // Refresh the list of themes
+    setSnackbar({ open: true, message: 'Theme saved successfully!', severity: 'success' });
+  };
+  
+  const handleDeleteTheme = async (themeId) => {
+    if (window.confirm('Are you sure you want to delete this theme? This cannot be undone.')) {
+        try {
+            await themeService.deleteTheme(themeId);
+            fetchThemes();
+            setSnackbar({ open: true, message: 'Theme deleted.', severity: 'success' });
+        } catch (error) {
+            setSnackbar({ open: true, message: 'Failed to delete theme.', severity: 'error' });
+        }
     }
   };
 
@@ -131,24 +170,41 @@ const SettingsPage = () => {
         </Grid>
 
         {/* Theme Settings */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Card>
-            <CardHeader title="Theme" />
+            <CardHeader 
+                title="Theme Management" 
+                action={
+                    <Button variant="outlined" startIcon={<AddIcon />} onClick={() => handleOpenThemeEditor()}>
+                        Create Theme
+                    </Button>
+                }
+            />
             <CardContent>
-              <FormControl fullWidth>
-                <Select value={(settings.theme || {}).themeName || 'default'} onChange={(e) => handleInputChange('theme', 'themeName', e.target.value)}>
-                  {themes.map((theme) => (
-                    <MenuItem key={theme._id} value={theme.name}>
-                      {theme.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                <Grid container spacing={2}>
+                    {themes.map(theme => (
+                        <Grid item xs={12} sm={6} md={4} key={theme._id}>
+                            <Card variant="outlined">
+                                <CardHeader 
+                                    title={theme.name}
+                                    subheader={theme.isSystemTheme ? 'System Theme' : 'Custom Theme'}
+                                    avatar={<Box sx={{width: 24, height: 24, borderRadius: '50%', backgroundColor: theme.colors.primary}} />}
+                                />
+                                <Divider />
+                                <CardActions>
+                                    <Button size="small" startIcon={<EditIcon />} onClick={() => handleOpenThemeEditor(theme)} disabled={theme.isSystemTheme}>Edit</Button>
+                                    <Button size="small" startIcon={<DeleteIcon />} color="error" onClick={() => handleDeleteTheme(theme._id)} disabled={theme.isSystemTheme}>Delete</Button>
+                                    <Button size="small" variant="contained" startIcon={<ApplyIcon />} onClick={() => handleApplyTheme(theme.name)} disabled={settings.theme?.themeName === theme.name}>Apply</Button>
+                                </CardActions>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
             </CardContent>
           </Card>
         </Grid>
         
-        {/* Invoice Settings */}
+        {/* Invoice Settings, Dashboard Settings, Notification Settings... */}
         <Grid item xs={12}>
           <Card>
             <CardHeader title="Invoice & Billing" />
@@ -177,7 +233,6 @@ const SettingsPage = () => {
           </Card>
         </Grid>
 
-        {/* Dashboard Settings */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardHeader title="Dashboard Widgets" />
@@ -189,7 +244,6 @@ const SettingsPage = () => {
           </Card>
         </Grid>
 
-        {/* Notification Settings */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardHeader title="Notifications" />
@@ -214,6 +268,12 @@ const SettingsPage = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      <ThemeEditorDialog 
+        open={themeEditorOpen}
+        onClose={handleCloseThemeEditor}
+        theme={editingTheme}
+        onSuccess={handleThemeSaveSuccess}
+      />
     </Container>
   );
 };

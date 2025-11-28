@@ -186,7 +186,7 @@ a:hover, a:focus {
 .form-control:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(var(--color-primary), 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
 }
 
 .form-control:disabled {
@@ -230,7 +230,7 @@ select.form-control {
 
 .btn:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(var(--color-primary), 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2);
 }
 
 .btn:disabled {
