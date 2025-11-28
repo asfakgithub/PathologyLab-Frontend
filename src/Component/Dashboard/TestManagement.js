@@ -103,7 +103,7 @@ function TestManagement() {
     try {
       setLoading(true);
       const response = await getTests();
-      
+      console.log('Fetched tests response:', response?.length);
       if (response && response.data) {
         // Handle different response structures
         const testsData = Array.isArray(response.data) ? response.data : response.data.data || [];

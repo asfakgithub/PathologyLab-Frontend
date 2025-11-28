@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
   Drawer,
@@ -35,6 +35,7 @@ import {
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { SettingsContext } from '../../context/SettingsContext';
 
 const drawerWidth = 280;
 
@@ -42,6 +43,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, hasAnyRole } = useAuth();
+  const { settings } = useContext(SettingsContext);
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -158,7 +160,7 @@ const Dashboard = () => {
       {/* Header */}
       <Box sx={{ p: 3, textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
         <Typography variant="h5" fontWeight="bold" color="primary">
-          PathologyLab
+          {settings.organization?.name || 'PathologyLab'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Professional Lab Management

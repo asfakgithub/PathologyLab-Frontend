@@ -5,6 +5,8 @@ import { CssBaseline, Box } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { useTheme } from './context/ThemeContext';
+import { SettingsProvider } from './context/SettingsContext';
+import ThemeHandler from './Component/common/ThemeHandler';
 import ProtectedRoute from './Component/common/ProtectedRoute';
 import Login from './Component/Auth/Login';
 import Dashboard from './Component/Dashboard/Dashboard';
@@ -12,7 +14,7 @@ import DashboardHome from './Component/Dashboard/DashboardHome';
 import PatientManagementEnhanced from './Component/Dashboard/PatientManagementEnhanced';
 import InvoiceManagementNew from './Component/Dashboard/InvoiceManagementNew';
 import ReportManagementEnhanced from './Component/Pages/ReportPage/ReportManagementEnhanced';
-import SettingsManagementEnhanced from './Component/Pages/SettingsPage/SettingsManagementEnhanced';
+import SettingsPage from './Component/Pages/SettingsPage/SettingsPage';
 import TestManagement from './Component/Dashboard/TestManagement';
 import LoadingSpinner from './Component/common/LoadingSpinner';
 import Messages from './Component/Dashboard/Messages';
@@ -178,6 +180,7 @@ function AppContent() {
     <div className="App">
       <AuthProvider>
         <MuiThemeCreator>
+          <ThemeHandler />
           <Box sx={{ minHeight: '100vh' }}>
             <Routes>
               {/* Public Routes */}
@@ -244,7 +247,7 @@ function AppContent() {
                   element={
                   <ProtectedRoute allowedRoles={["master", "admin"]}>
                     <React.Suspense fallback={<LoadingSpinner />}>
-                      <SettingsManagementEnhanced/>
+                      <SettingsPage />
                     </React.Suspense>
                   </ProtectedRoute>
                 } 
@@ -358,7 +361,9 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <SettingsProvider>
+        <AppContent />
+      </SettingsProvider>
     </ThemeProvider>
   );
 }

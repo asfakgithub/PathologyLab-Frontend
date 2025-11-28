@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
   Paper,
@@ -56,9 +56,11 @@ import { invoiceService } from '../../services/invoiceService';
 import { getTests, getUsers } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 import useSystemNotification from '../../core/hooks/useSystemNotification';
+import { SettingsContext } from '../../context/SettingsContext';
 
 const InvoiceManagementNew = () => {
   const { sendSystemNotification } = useSystemNotification();
+  const { settings } = useContext(SettingsContext);
   const [invoices, setInvoices] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedRecipient, setSelectedRecipient] = useState(null);
@@ -159,6 +161,8 @@ const InvoiceManagementNew = () => {
       default: return 'default';
     }
   };
+  
+  const { billingEnabled, allowEdit, allowDelete } = settings.invoice || {};
 
   const filteredInvoices = invoices.filter(invoice =>
     invoice.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -197,14 +201,16 @@ const InvoiceManagementNew = () => {
               </IconButton>
             </Tooltip>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateInvoice}
-            sx={{ borderRadius: 2 }}
-          >
-            Create Invoice
-          </Button>
+          {billingEnabled &&
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateInvoice}
+              sx={{ borderRadius: 2 }}
+            >
+              Create Invoice
+            </Button>
+          }
         </Box>
       </Box>
 
@@ -339,15 +345,17 @@ const InvoiceManagementNew = () => {
                           <ViewIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Edit">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditInvoice(invoice)}
-                          color="secondary"
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
+                      {allowEdit &&
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditInvoice(invoice)}
+                            color="secondary"
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                      }
                       {invoice.status !== 'paid' && (
                         <Tooltip title="Payment">
                           <IconButton
@@ -359,15 +367,17 @@ const InvoiceManagementNew = () => {
                           </IconButton>
                         </Tooltip>
                       )}
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteInvoice(invoice.invoiceId)}
-                          color="error"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
+                      {allowDelete &&
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteInvoice(invoice.invoiceId)}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      }
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -394,6 +404,7 @@ const InvoiceManagementNew = () => {
         open={openDialog}
         onClose={() => setOpenDialog(false)}
         invoice={editingInvoice}
+        settings={settings.invoice}
         selectedRecipient={selectedRecipient}
         onSuccess={() => {
           setOpenDialog(false);
@@ -428,7 +439,7 @@ const InvoiceManagementNew = () => {
 };
 
 // Invoice Form Dialog Component
-const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selectedRecipient }) => {
+const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selectedRecipient, settings }) => {
   const { sendSystemNotification } = useSystemNotification();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -450,8 +461,8 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
     invoiceNumber: '',
     testDetails: [],
     discountAmount: 0,
-    gstPercentage: 18,
-    additionalCharges: 0,
+    gstPercentage: settings?.defaultGST || 18,
+    additionalCharges: settings?.additionalCharges || 0,
     notes: '',
     paymentMethod: 'cash'
   });
@@ -460,12 +471,12 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
     if (open) {
       fetchTests();
       if (invoice) {
-        setFormData({ ...invoice });
+        setFormData({ ...invoice, gstPercentage: invoice.gstPercentage || settings?.defaultGST || 18 });
       } else {
         resetForm();
       }
     }
-  }, [open, invoice]);
+  }, [open, invoice, settings]);
 
   const fetchTests = async () => {
     try {
@@ -490,8 +501,8 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
       invoiceNumber: '',
       testDetails: [],
       discountAmount: 0,
-      gstPercentage: 18,
-      additionalCharges: 0,
+      gstPercentage: settings?.defaultGST || 18,
+      additionalCharges: settings?.additionalCharges || 0,
       notes: '',
       paymentMethod: 'cash'
     });

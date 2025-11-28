@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import {
   Box,
   Grid,
@@ -27,6 +27,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
+import { SettingsContext } from '../../context/SettingsContext';
 import api, { getPatientStats, getReportStats, getInvoiceStats, getPatients, getReports } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -168,6 +169,7 @@ const TestStatusChart = ({ testStats, loading }) => (
 
 const DashboardHome = () => {
   const { user, hasAnyRole } = useAuth();
+  const { settings } = useContext(SettingsContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
@@ -178,6 +180,14 @@ const DashboardHome = () => {
   });
   const [recentActivities, setRecentActivities] = useState([]);
   const [testStats, setTestStats] = useState({});
+  
+  const widgetVisibility = useMemo(() => 
+    (settings.dashboard || []).reduce((acc, widget) => {
+      acc[widget.widgetKey] = widget.isVisible;
+      return acc;
+    }, {}),
+    [settings.dashboard]
+  );
 
   useEffect(() => {
     fetchDashboardData();
@@ -301,29 +311,33 @@ const DashboardHome = () => {
 
       {/* Stats Cards */}
       <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Patients"
-            value={stats.patients.total.toLocaleString()}
-            icon={<PeopleIcon />}
-            color="#1976d2"
-            change={stats.patients.change}
-            changeText="this month"
-          />
-        </Grid>
+        {widgetVisibility.patient_stats && 
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Total Patients"
+              value={stats.patients.total.toLocaleString()}
+              icon={<PeopleIcon />}
+              color="#1976d2"
+              change={stats.patients.change}
+              changeText="this month"
+            />
+          </Grid>
+        }
         
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Tests Conducted"
-            value={stats.tests.total.toLocaleString()}
-            icon={<ScienceIcon />}
-            color="#2e7d32"
-            change={stats.tests.change}
-            changeText="this month"
-          />
-        </Grid>
+        {widgetVisibility.tests_conducted_stats && 
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Tests Conducted"
+              value={stats.tests.total.toLocaleString()}
+              icon={<ScienceIcon />}
+              color="#2e7d32"
+              change={stats.tests.change}
+              changeText="this month"
+            />
+          </Grid>
+        }
         
-        {hasAnyRole(['master', 'admin', 'receptionist']) && (
+        {hasAnyRole(['master', 'admin', 'receptionist']) && widgetVisibility.invoices_stats && (
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
               title="Total Invoices"
@@ -336,7 +350,7 @@ const DashboardHome = () => {
           </Grid>
         )}
 
-        {hasAnyRole(['master', 'admin', 'receptionist']) && (
+        {hasAnyRole(['master', 'admin', 'receptionist']) && widgetVisibility.revenue_chart && (
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
               title="Total Invoice Value"
@@ -378,19 +392,23 @@ const DashboardHome = () => {
 
       {/* Charts and Activity */}
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <RecentActivity 
-            activities={recentActivities}
-            loading={false}
-          />
-        </Grid>
+        {widgetVisibility.recent_reports && 
+          <Grid item xs={12} md={8}>
+            <RecentActivity 
+              activities={recentActivities}
+              loading={false}
+            />
+          </Grid>
+        }
         
-        <Grid item xs={12} md={4}>
-          <TestStatusChart 
-            testStats={testStats}
-            loading={false}
-          />
-        </Grid>
+        {widgetVisibility.test_status_chart && 
+          <Grid item xs={12} md={4}>
+            <TestStatusChart 
+              testStats={testStats}
+              loading={false}
+            />
+          </Grid>
+        }
       </Grid>
     </Box>
   );
