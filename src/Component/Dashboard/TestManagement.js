@@ -23,15 +23,18 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Tooltip
+  Tooltip,
+  Switch
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import ScienceIcon from '@mui/icons-material/Science';
+import TestTable from './TestTable';
 import LoadingSpinner from '../common/LoadingSpinner';
 import TestTube1 from '../Images/TestTube1.svg';
+
 function TestManagement() {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +43,8 @@ function TestManagement() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [isTableView, setIsTableView] = useState(false);
+ // const [isTableView, setIsTableView] = useState(false);
   
 
   // Form state
@@ -457,8 +462,8 @@ function TestManagement() {
         )}
       </Box>
 
-      {/* Search */}
-      <Box mb={3}>
+      {/* Search and View Toggle */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <TextField
           fullWidth
           placeholder="Search tests by name, code, or category..."
@@ -473,125 +478,145 @@ function TestManagement() {
           }}
           sx={{ maxWidth: 500 }}
         />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={isTableView}
+              onChange={(e) => setIsTableView(e.target.checked)}
+              name="tableViewToggle"
+              color="primary"
+            />
+          }
+          label="Table View"
+          sx={{ ml: 2 }}
+        />
       </Box>
 
       {/* Tests List */}
-      {/* Compact grid: horizontal flow (row-first) — smaller tiles */}
-      <Grid container spacing={3}>
-        {filteredTests.length === 0 ? (
-          <Grid item xs={12}>
-            <Card sx={{ p: 4, textAlign: 'center' }}>
-              <ScienceIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary">
-                {searchTerm ? 'No tests found matching your search' : 'No tests available'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                {searchTerm ? 'Try adjusting your search terms' : 'Create your first test to get started'}
-              </Typography>
-            </Card>
-          </Grid>
-        ) : (
-          filteredTests.map((test) => (
-            <Grid item xs={12} sm={6} md={4} key={test._id} sx={{ display: 'flex' }}>
-              <Card sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                <CardContent sx={{ flexGrow: 1, display: 'flex', p: 2 }}>
-                    <Box sx={{ flex: '1 1 75%', pr: 2, display: 'flex', flexDirection: 'column' }}>
-                        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                            <Typography variant="h6" fontWeight="bold">
-                                {test.name}
-                            </Typography>
-                            <Chip
-                                label={test.code}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                            />
-                        </Box>
-
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            <strong>Category:</strong> {test.category}
-                        </Typography>
-
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            <strong>Sample:</strong> {test.sampleType} {test.sampleVolume && `(${test.sampleVolume})`}
-                        </Typography>
-
-                        {test.duration && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                <strong>Duration:</strong> {test.duration} hours
-                            </Typography>
-                        )}
-
-                        <Tooltip title={test.description} arrow>
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                mb: 2,
-                                display: '-webkit-box',
-                                WebkitBoxOrient: 'vertical',
-                                WebkitLineClamp: 2,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                cursor: 'pointer',
-                                flexGrow: 1
-                                }}
-                            >
-                                {test.description.slice(0, 100) + (test.description.length > 40 ? '...' : '')}
-                            </Typography>
-                        </Tooltip>
-
-                        {test.parameters && test.parameters.length > 0 && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                <strong>Parameters:</strong> {test.parameters.length} test(s)
-                            </Typography>
-                        )}
-
-                        {test.fastingRequired && (
-                            <Chip
-                                label="Fasting Required"
-                                size="small"
-                                color="warning"
-                                sx={{ mt: 'auto' }}
-                            />
-                        )}
-                    </Box>
-                    <Box sx={{ flex: '0 0 25%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', pl: 2, borderLeft: '1px solid', borderColor: 'divider' }}>
-                        <Box
-                            component="img"
-                            src={TestTube1}
-                            alt="test-tube"
-                            sx={{ width: '100%', maxWidth: 120, height: 'auto', objectFit: 'contain', mb: 1 }}
-                        />
-                        <Box textAlign="center">
-                          <Typography variant="h6" color="primary" fontWeight="bold">
-                              ₹{test.price}
-                          </Typography>
-                        </Box>
-                    </Box>
-                </CardContent>
-
-                <CardActions sx={{ justifyContent: 'flex-end' }}>
-                    <Button
-                        size="small"
-                        startIcon={<EditIcon />}
-                        onClick={() => handleOpenDialog(test)}
-                    >
-                        Edit
-                    </Button>
-                    <Button
-                        size="small"
-                        color="error"
-                        startIcon={<DeleteIcon />}
-                        onClick={() => handleDelete(test._id, test.name)}
-                    >
-                        Delete
-                    </Button>
-                </CardActions>
+      {isTableView ? (
+        <TestTable 
+          tests={filteredTests} 
+          handleOpenDialog={handleOpenDialog} 
+          handleDelete={handleDelete} 
+        />
+      ) : (
+        /* Compact grid: horizontal flow (row-first) — smaller tiles */
+        <Grid container spacing={3}>
+          {filteredTests.length === 0 ? (
+            <Grid item xs={12}>
+              <Card sx={{ p: 4, textAlign: 'center' }}>
+                <ScienceIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">
+                  {searchTerm ? 'No tests found matching your search' : 'No tests available'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  {searchTerm ? 'Try adjusting your search terms' : 'Create your first test to get started'}
+                </Typography>
               </Card>
             </Grid>
-          ))
-        )}
-      </Grid>
+          ) : (
+            filteredTests.map((test) => (
+              <Grid item xs={12} sm={6} md={4} key={test._id} sx={{ display: 'flex' }}>
+                <Card sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', p: 2 }}>
+                      <Box sx={{ flex: '1 1 75%', pr: 2, display: 'flex', flexDirection: 'column' }}>
+                          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                              <Typography variant="h6" fontWeight="bold">
+                                  {test.name}
+                              </Typography>
+                              <Chip
+                                  label={test.code}
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                              />
+                          </Box>
+
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              <strong>Category:</strong> {test.category}
+                          </Typography>
+
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              <strong>Sample:</strong> {test.sampleType} {test.sampleVolume && `(${test.sampleVolume})`}
+                          </Typography>
+
+                          {test.duration && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                  <strong>Duration:</strong> {test.duration} hours
+                              </Typography>
+                          )}
+
+                          <Tooltip title={test.description} arrow>
+                              <Typography
+                                  variant="body2"
+                                  sx={{
+                                  mb: 2,
+                                  display: '-webkit-box',
+                                  WebkitBoxOrient: 'vertical',
+                                  WebkitLineClamp: 2,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  cursor: 'pointer',
+                                  flexGrow: 1
+                                  }}
+                              >
+                                  {test.description.slice(0, 100) + (test.description.length > 40 ? '...' : '')}
+                              </Typography>
+                          </Tooltip>
+
+                          {test.parameters && test.parameters.length > 0 && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                  <strong>Parameters:</strong> {test.parameters.length} test(s)
+                              </Typography>
+                          )}
+
+                          {test.fastingRequired && (
+                              <Chip
+                                  label="Fasting Required"
+                                  size="small"
+                                  color="warning"
+                                  sx={{ mt: 'auto' }}
+                              />
+                          )}
+                      </Box>
+                      <Box sx={{ flex: '0 0 25%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', pl: 2, borderLeft: '1px solid', borderColor: 'divider' }}>
+                          <Box
+                              component="img"
+                              src={TestTube1}
+                              alt="test-tube"
+                              sx={{ width: '100%', maxWidth: 120, height: 'auto', objectFit: 'contain', mb: 1 }}
+                          />
+                          <Box textAlign="center">
+                            <Typography variant="h6" color="primary" fontWeight="bold">
+                                ₹{test.price}
+                            </Typography>
+                          </Box>
+                      </Box>
+                  </CardContent>
+
+                  <CardActions sx={{ justifyContent: 'flex-end' }}>
+                      <Button
+                          size="small"
+                          startIcon={<EditIcon />}
+                          onClick={() => handleOpenDialog(test)}
+                      >
+                          Edit
+                      </Button>
+                      <Button
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => handleDelete(test._id, test.name)}
+                      >
+                          Delete
+                      </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))
+          )}
+        </Grid>
+      )}
 
       {/* Test Form Dialog */}
       <Dialog 
