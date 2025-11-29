@@ -8,6 +8,7 @@ import {
   getTests
 } from '../../../services/api';
 import LoadingSpinner from '../../common/LoadingSpinner';
+import formatReferenceRange from '../../../utils/formatReferenceRange';
 import './ReportForm.css';
 
 // Icons
@@ -153,7 +154,7 @@ const ReportForm = () => {
                 ? patientData.address 
                 : `${patientData.address?.street || ''} ${patientData.address?.city || ''}`.trim()
             },
-            testResults: initializeTestResults(patientData.tests || [])
+            testResults: initializeTestResults(patientData.tests || [], patientData)
           }));
         }
       }
@@ -166,7 +167,7 @@ const ReportForm = () => {
     }
   };
 
-  const initializeTestResults = (patientTests) => {
+  const initializeTestResults = (patientTests, patientData = {}) => {
     const initialResults = [];
     
     patientTests.forEach((test, testIndex) => {
@@ -179,7 +180,7 @@ const ReportForm = () => {
             subtestId: subtest.subtestId,
             subtestName: subtest.subtestName,
             parameterName: subtest.subtestName,
-            normalRange: subtest.normalRange || '',
+            normalRange: formatReferenceRange(subtest.referenceRange || subtest.normalRange, patientData || {}),
             unit: subtest.unit || '',
             method: subtest.method || 'Standard Laboratory Method',
             result: '',
@@ -193,7 +194,7 @@ const ReportForm = () => {
           testId: test.testId,
           testName: test.testName,
           parameterName: test.testName,
-          normalRange: test.normalRange || '',
+          normalRange: formatReferenceRange(test.referenceRange || test.normalRange, patientData || {}),
           unit: '',
           method: 'Standard Laboratory Method',
           result: '',

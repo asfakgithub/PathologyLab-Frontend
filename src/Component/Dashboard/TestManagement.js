@@ -34,6 +34,7 @@ import ScienceIcon from '@mui/icons-material/Science';
 import TestTable from './TestTable';
 import LoadingSpinner from '../common/LoadingSpinner';
 import TestTube1 from '../Images/TestTube1.svg';
+import TestEditor from './TestEditor';
 
 function TestManagement() {
   const [tests, setTests] = useState([]);
@@ -59,7 +60,7 @@ function TestManagement() {
     price: '',
     fastingRequired: false,
     instructions: '',
-    normalRange: { adult: '', child: '' },
+    referenceRange: { male: '', female: '', child: '', infant: '' },
     parameters: []
   });
 
@@ -71,7 +72,7 @@ function TestManagement() {
     method: '',
     fastingRequired: false,
     instructions: '',
-    normalRange: { adult: '', child: '' },
+    referenceRange: { male: '', female: '', child: '', infant: '' },
     price: ''
   });
 
@@ -190,7 +191,7 @@ function TestManagement() {
       price: '',
       fastingRequired: false,
       instructions: '',
-      normalRange: { adult: '', child: '' },
+      referenceRange: { male: '', female: '', child: '', infant: '' },
       parameters: []
     });
     setParameterForm({
@@ -200,7 +201,7 @@ function TestManagement() {
       method: '',
       fastingRequired: false,
       instructions: '',
-      normalRange: { adult: '', child: '' },
+      referenceRange: { male: '', female: '', child: '', infant: '' },
       price: ''
     });
     setError(null);
@@ -221,7 +222,7 @@ function TestManagement() {
         price: test.price || '',
         fastingRequired: test.fastingRequired || false,
         instructions: test.instructions || '',
-        normalRange: test.normalRange || { adult: '', child: '' },
+        referenceRange: test.referenceRange || { male: '', female: '', child: '', infant: '' },
         parameters: test.parameters || []
       });
     } else {
@@ -266,7 +267,7 @@ function TestManagement() {
 
   const handleExistingParameterRangeChange = (index, subfield, value) => {
     const updatedParameters = [...form.parameters];
-    updatedParameters[index].normalRange = { ...updatedParameters[index].normalRange, [subfield]: value };
+    updatedParameters[index].referenceRange = { ...updatedParameters[index].referenceRange, [subfield]: value };
     setForm({ ...form, parameters: updatedParameters });
   };
   // Add parameter to test
@@ -297,7 +298,7 @@ function TestManagement() {
       method: '',
       fastingRequired: false,
       instructions: '',
-      normalRange: { adult: '', child: '' },
+      referenceRange: { male: '', female: '', child: '', infant: '' },
       price: ''
     });
     setError(null);
@@ -619,439 +620,14 @@ function TestManagement() {
       )}
 
       {/* Test Form Dialog */}
-      <Dialog 
-        open={openDialog} 
-        onClose={handleCloseDialog} 
-        maxWidth="lg" 
-        fullWidth
-        PaperProps={{
-          sx: { maxHeight: '90vh' }
-        }}
-      >
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-
-          {/* Basic Test Information */}
-          <Typography variant="h6" sx={{ mb: 2, mt: 1 }}>
-            Basic Information
-          </Typography>
-          
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Test Name *"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="e.g., Complete Blood Count (CBC)"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Test Code *"
-                name="code"
-                value={form.code}
-                onChange={handleChange}
-                placeholder="e.g., CBC"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Category *</InputLabel>
-                <Select
-                  name="category"
-                  value={form.category}
-                  label="Category *"
-                  onChange={handleChange}
-                >
-                  {testCategories.map((category) => (
-                    <MenuItem key={category} value={category.toLowerCase()}>
-                      {category}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Price *"
-                name="price"
-                type="number"
-                value={form.price}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                }}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description *"
-                name="description"
-                multiline
-                rows={2}
-                value={form.description}
-                onChange={handleChange}
-                placeholder="e.g., Comprehensive blood analysis including RBC, WBC, platelets"
-              />
-            </Grid>
-          </Grid>
-
-          {/* Sample and Duration Information */}
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Sample & Duration Information
-          </Typography>
-          
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth>
-                <InputLabel>Sample Type</InputLabel>
-                <Select
-                  name="sampleType"
-                  value={form.sampleType}
-                  label="Sample Type"
-                  onChange={handleChange}
-                >
-                  {sampleTypes.map((type) => (
-                    <MenuItem key={type} value={type.toLowerCase()}>
-                      {type}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Sample Volume"
-                name="sampleVolume"
-                value={form.sampleVolume}
-                onChange={handleChange}
-                placeholder="e.g., 5ml"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Duration (hours)"
-                name="duration"
-                type="number"
-                value={form.duration}
-                onChange={handleChange}
-                placeholder="e.g., 24"
-              />
-            </Grid>
-          </Grid>
-
-          {/* Instructions and Requirements */}
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Instructions & Requirements
-          </Typography>
-          
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Instructions"
-                name="instructions"
-                multiline
-                rows={2}
-                value={form.instructions}
-                onChange={handleChange}
-                placeholder="e.g., No special preparation required"
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="fastingRequired"
-                    checked={form.fastingRequired}
-                    onChange={handleChange}
-                  />
-                }
-                label="Fasting Required"
-              />
-            </Grid>
-          </Grid>
-
-          {/* Normal Range for Test */}
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Normal Range (Test Level)
-          </Typography>
-          
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Adult Normal Range"
-                value={form.normalRange.adult}
-                onChange={(e) => handleRangeChange('normalRange', 'adult', e.target.value)}
-                placeholder="e.g., 1000mn>Normal<2000mn"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Child Normal Range"
-                value={form.normalRange.child}
-                onChange={(e) => handleRangeChange('normalRange', 'child', e.target.value)}
-                placeholder="e.g., 2000mn>Normal<3000mn"
-              />
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 3 }} />
-
-          {/* Parameters Section */}
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Test Parameters / Subtests ({form.parameters.length} added)
-          </Typography>
-
-          {/* Existing Parameters */}
-          {form.parameters.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              {form.parameters.map((param, index) => (
-                <Card key={param._id || index} sx={{ mb: 2, bgcolor: 'grey.50', p: 2 }}>
-                  <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        Editing Parameter: {param.name}
-                      </Typography>
-                      <IconButton 
-                        color="error" 
-                        onClick={() => removeParameter(index)}
-                        size="small"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <TextField fullWidth label="Parameter Name *" name="name" value={param.name} onChange={(e) => handleExistingParameterChange(index, 'name', e.target.value)} />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField fullWidth label="Unit" name="unit" value={param.unit} onChange={(e) => handleExistingParameterChange(index, 'unit', e.target.value)} />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField fullWidth label="Reference Range" name="referenceRange" value={param.referenceRange} onChange={(e) => handleExistingParameterChange(index, 'referenceRange', e.target.value)} />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField fullWidth label="Method" name="method" value={param.method} onChange={(e) => handleExistingParameterChange(index, 'method', e.target.value)} />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Price"
-                          name="price"
-                          type="number"
-                          value={param.price}
-                          onChange={(e) => handleExistingParameterChange(index, 'price', e.target.value)}
-                          InputProps={{
-                            startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              name="fastingRequired"
-                              checked={param.fastingRequired || false}
-                              onChange={(e) => handleExistingParameterChange(index, 'fastingRequired', e.target.checked)}
-                            />
-                          }
-                          label="Fasting Required"
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="Instructions"
-                          name="instructions"
-                          multiline
-                          rows={2}
-                          value={param.instructions}
-                          onChange={(e) => handleExistingParameterChange(index, 'instructions', e.target.value)}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Adult Normal Range"
-                          value={param.normalRange?.adult || ''}
-                          onChange={(e) => handleExistingParameterRangeChange(index, 'adult', e.target.value)}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Child Normal Range"
-                          value={param.normalRange?.child || ''}
-                          onChange={(e) => handleExistingParameterRangeChange(index, 'child', e.target.value)}
-                        />
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          )}
-
-          {/* Add New Parameter Form */}
-          <Card sx={{ bgcolor: 'primary.50', border: '1px dashed', borderColor: 'primary.main' }}>
-            <CardContent>
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-                Add New Parameter
-              </Typography>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Parameter Name *"
-                    name="name"
-                    value={parameterForm.name}
-                    onChange={handleParameterChange}
-                    placeholder="e.g., Hemoglobin"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Unit"
-                    name="unit"
-                    value={parameterForm.unit}
-                    onChange={handleParameterChange}
-                    placeholder="e.g., g/dL"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Reference Range"
-                    name="referenceRange"
-                    value={parameterForm.referenceRange}
-                    onChange={handleParameterChange}
-                    placeholder="e.g., 12.0-16.0"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Method"
-                    name="method"
-                    value={parameterForm.method}
-                    onChange={handleParameterChange}
-                    placeholder="e.g., automated analyzer"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Price"
-                    name="price"
-                    type="number"
-                    value={parameterForm.price}
-                    onChange={handleParameterChange}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        name="fastingRequired"
-                        checked={parameterForm.fastingRequired}
-                        onChange={handleParameterChange}
-                      />
-                    }
-                    label="Fasting Required"
-                  />
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Instructions"
-                    name="instructions"
-                    multiline
-                    rows={2}
-                    value={parameterForm.instructions}
-                    onChange={handleParameterChange}
-                    placeholder="e.g., No special preparation required"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Adult Normal Range"
-                    value={parameterForm.normalRange.adult}
-                    onChange={(e) => handleParameterRangeChange('normalRange', 'adult', e.target.value)}
-                    placeholder="e.g., 1000mn>Normal<2000mn"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Child Normal Range"
-                    value={parameterForm.normalRange.child}
-                    onChange={(e) => handleParameterRangeChange('normalRange', 'child', e.target.value)}
-                    placeholder="e.g., 2000mn>Normal<3000mn"
-                  />
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <Button 
-                    variant="outlined" 
-                    onClick={addParameter}
-                    startIcon={<AddIcon />}
-                  >
-                    Add Parameter
-                  </Button>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleCloseDialog} disabled={formLoading}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSave} 
-            variant="contained" 
-            disabled={formLoading}
-          >
-            {formLoading ? 'Saving...' : (editingTest ? 'Update Test' : 'Create Test')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <TestEditor
+        open={openDialog}
+        onClose={handleCloseDialog}
+        editingTest={editingTest}
+        onSaved={() => { fetchTests(); fetchTestStats(); showSnackbar(editingTest ? 'Test updated successfully!' : 'Test created successfully!', 'success'); }}
+        testCategories={testCategories}
+        sampleTypes={sampleTypes}
+      />
 
       {/* Snackbar */}
       <Snackbar 

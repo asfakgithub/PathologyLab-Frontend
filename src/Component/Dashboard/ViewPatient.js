@@ -195,12 +195,37 @@ const ViewPatient = (props) => {
   };
 
   // Helper to convert a normalRange (which can be an object or string) into a display string.
-  const formatNormalRange = (range) => {
+  const formatReferenceRange = (range) => {
     if (!range) return '';
-    if (typeof range === 'string') {
-      return range;
-    }
+    if (typeof range === 'string') return range;
     if (typeof range === 'object') {
+      // Structured shape: male/female/child/infant with min/max
+      const hasStructured = ['male','female','child','infant'].some(k => !!range[k]);
+      if (hasStructured) {
+        const genderRaw = (patient && patient.gender) ? String(patient.gender).toLowerCase() : '';
+        const age = Number(patient?.age) || null;
+        let group = 'male';
+        if (genderRaw.startsWith('f')) group = 'female';
+        else if (age !== null) {
+          if (age < 1) group = 'infant';
+          else if (age < 18) group = 'child';
+          else group = 'male';
+        }
+        const g = range[group] || {};
+        const min = g.min || '';
+        const max = g.max || '';
+        if (min || max) return `${min}${max ? ' - ' + max : ''}`.trim();
+
+        // Fallback: show combined brief
+        const parts = [];
+        if (range.male) parts.push(`M: ${range.male.min || ''}${range.male.max ? ' - ' + range.male.max : ''}`);
+        if (range.female) parts.push(`F: ${range.female.min || ''}${range.female.max ? ' - ' + range.female.max : ''}`);
+        if (range.child) parts.push(`Child: ${range.child.min || ''}${range.child.max ? ' - ' + range.child.max : ''}`);
+        if (range.infant) parts.push(`Infant: ${range.infant.min || ''}${range.infant.max ? ' - ' + range.infant.max : ''}`);
+        return parts.join(', ');
+      }
+
+      // Legacy shape: adult/child
       return `Adult: ${range.adult || ''}, Child: ${range.child || ''}`;
     }
     return '';
@@ -241,10 +266,10 @@ const ViewPatient = (props) => {
               parameterName: entry.parameterName || ss.subtestName || (ss.parameter && ss.parameter.name) || '',
               value: entry.value || '',
               unit: entry.unit || (ss.parameter && ss.parameter.unit) || '',
-              // Ensure normalRange is always a string before sending to backend
-              normalRange: typeof entry.normalRange === 'object' 
-                ? formatNormalRange(entry.normalRange) 
-                : entry.normalRange || formatNormalRange(ss.parameter?.normalRange) || '',
+              // Ensure normalRange/referenceRange is always a string before sending to backend
+              normalRange: typeof entry.referenceRange === 'object' || typeof entry.normalRange === 'object'
+                ? formatReferenceRange(entry.referenceRange || entry.normalRange || ss.parameter?.referenceRange || ss.parameter?.normalRange)
+                : entry.normalRange || entry.referenceRange || formatReferenceRange(ss.parameter?.referenceRange || ss.parameter?.normalRange) || '',
               notes: entry.notes || ''
             });
           }
@@ -467,10 +492,10 @@ const ViewPatient = (props) => {
                         onChange={(e) => handleResultChange(testId, subtestId || tempId, 'unit', e.target.value)}
                       />
                     </td>
-                    <td style={styles.tableCell}>
+                      <td style={styles.tableCell}>
                       <input
                         style={{ width: '90%' }}
-                        value={formatNormalRange(existing.normalRange || (ss.parameter && ss.parameter.normalRange))}
+                        value={formatReferenceRange(existing.referenceRange || (ss.parameter && ss.parameter.referenceRange) || existing.normalRange || (ss.parameter && ss.parameter.normalRange))}
                         onChange={(e) => handleResultChange(testId, subtestId || tempId, 'normalRange', e.target.value)}
                       />
                     </td>

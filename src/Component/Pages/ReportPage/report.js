@@ -5,6 +5,7 @@ import {
   updatePatient, 
   createReport 
 } from '../../../services/api';
+import formatReferenceRange from '../../../utils/formatReferenceRange';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import './report.css';
 
@@ -35,7 +36,7 @@ function Report() {
         
         // Initialize report results based on patient's tests
         if (patientData.tests && patientData.tests.length > 0) {
-          initializeReportResults(patientData.tests);
+          initializeReportResults(patientData.tests, patientData);
         }
       } else {
         setError('Patient not found');
@@ -68,7 +69,7 @@ function Report() {
             subtestId: subtest.subtestId,
             subtestName: subtest.subtestName,
             name: subtest.subtestName,
-            normalRange: subtest.normalRange || '',
+            normalRange: formatReferenceRange(subtest.referenceRange || subtest.normalRange, patient || {}),
             unit: subtest.unit || '',
             result: '',
             status: 'pending'
@@ -81,7 +82,7 @@ function Report() {
           testId: test.testId,
           testName: test.testName,
           name: test.testName,
-          normalRange: test.normalRange || '',
+          normalRange: formatReferenceRange(test.referenceRange || test.normalRange, patient || {}),
           unit: '',
           result: '',
           status: 'pending'

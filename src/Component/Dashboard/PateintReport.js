@@ -74,13 +74,39 @@ const PateintReport = (props) => {
   // Helper: only render rows/fields that have values
   const hasValue = (v) => v !== null && v !== undefined && String(v).trim() !== '';
 
-  // Helper to convert a normalRange (which can be an object or string) into a display string.
-  const formatNormalRange = (range) => {
+  // Helper to convert a referenceRange (structured or legacy) into a display string.
+  const formatReferenceRange = (range) => {
     if (!range) return '';
-    if (typeof range === 'string') {
-      return range;
-    }
+    if (typeof range === 'string') return range;
     if (typeof range === 'object') {
+      const hasStructured = ['male','female','child','infant'].some(k => !!range[k]);
+      if (hasStructured) {
+        // prefer patient gender when available
+        // note: patient object is in outer scope
+        const genderRaw = (patient && patient.gender) ? String(patient.gender).toLowerCase() : '';
+        const age = Number(patient?.age) || null;
+        let group = 'male';
+        if (genderRaw.startsWith('f')) group = 'female';
+        else if (age !== null) {
+          if (age < 1) group = 'infant';
+          else if (age < 18) group = 'child';
+          else group = 'male';
+        }
+        const g = range[group] || {};
+        const min = g.min || '';
+        const max = g.max || '';
+        if (min || max) return `${min}${max ? ' - ' + max : ''}`.trim();
+
+        // fallback combined
+        const parts = [];
+        if (range.male) parts.push(`M: ${range.male.min || ''}${range.male.max ? ' - ' + range.male.max : ''}`);
+        if (range.female) parts.push(`F: ${range.female.min || ''}${range.female.max ? ' - ' + range.female.max : ''}`);
+        if (range.child) parts.push(`Child: ${range.child.min || ''}${range.child.max ? ' - ' + range.child.max : ''}`);
+        if (range.infant) parts.push(`Infant: ${range.infant.min || ''}${range.infant.max ? ' - ' + range.infant.max : ''}`);
+        return parts.join(', ');
+      }
+
+      // legacy adult/child shape
       return `Adult: ${range.adult || ''}, Child: ${range.child || ''}`;
     }
     return '';
@@ -204,7 +230,7 @@ const PateintReport = (props) => {
                       <td style={styles.tableCell}>{displayName}</td>
                       <td style={styles.tableCell}>{existing.value || ''}</td>
                       <td style={styles.tableCell}>{existing.unit || (ss.parameter && ss.parameter.unit) || ''}</td>
-                      <td style={styles.tableCell}>{formatNormalRange(existing.normalRange || (ss.parameter && ss.parameter.normalRange))}</td>
+                      <td style={styles.tableCell}>{formatReferenceRange(existing.referenceRange || (ss.parameter && ss.parameter.referenceRange) || existing.normalRange || (ss.parameter && ss.parameter.normalRange))}</td>
                       <td style={styles.tableCell}>{existing.notes || ''}</td>
                     </tr>
                   );
