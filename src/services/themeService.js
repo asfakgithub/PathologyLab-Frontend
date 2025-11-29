@@ -249,6 +249,25 @@ class ThemeService {
       const canonicalKey = (theme.key || theme.name || '').toString().toLowerCase();
       if (canonicalKey) localStorage.setItem('pathologylab-theme', canonicalKey);
       localStorage.setItem('pathologylab-theme-object', JSON.stringify(theme));
+
+      // Apply a body class like `theme-dark` or `theme-cyberpunk` for theme-specific CSS
+      const sanitizeForClass = (s) => s.toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      // Remove any existing theme- classes
+      try {
+        document.body.classList.forEach(cls => {
+          if (cls && cls.indexOf('theme-') === 0) document.body.classList.remove(cls);
+        });
+      } catch (e) {
+        // classList.forEach might not be supported in very old browsers, fallback below
+        Array.from(document.body.classList || []).forEach(cls => {
+          if (cls && cls.indexOf('theme-') === 0) document.body.classList.remove(cls);
+        });
+      }
+
+      if (canonicalKey) {
+        const themedClass = `theme-${sanitizeForClass(canonicalKey)}`;
+        document.body.classList.add(themedClass);
+      }
     } catch (err) {
       console.warn('Failed to persist theme to localStorage:', err);
     }

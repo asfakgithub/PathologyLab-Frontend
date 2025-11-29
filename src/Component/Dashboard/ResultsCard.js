@@ -39,8 +39,8 @@ const ResultsCard = ({ patient, isConnected, onClick }) => {
             key={idx}
             className="p-3 rounded-lg border"
             style={{
-              background: isConnected ? 'rgba(15, 23, 42, 0.2)' : 'rgba(45, 212, 191, 0.1)',
-              borderColor: isConnected ? 'rgba(15, 23, 42, 0.3)' : 'rgba(45, 212, 191, 0.3)'
+              background: isConnected ? 'rgba(var(--color-text-rgb), 0.06)' : 'rgba(var(--color-primary-rgb), 0.08)',
+              borderColor: isConnected ? 'rgba(var(--color-text-rgb), 0.12)' : 'rgba(var(--color-primary-rgb), 0.14)'
             }}
           >
             <p className={`text-xs mb-1 ${isConnected ? 'text-slate-700' : 'text-gray-400'}`}>

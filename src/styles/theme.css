@@ -35,6 +35,18 @@
   --color-buttonHover: #0056b3;
   --color-accent: #6f42c1;
 
+  /* Default RGB fallbacks for components that use rgba(var(--color-*-rgb), ...) */
+  --color-primary-rgb: 25, 118, 210; /* #1976d2 */
+  --color-primaryLight-rgb: 66, 165, 245; /* #42a5f5 */
+  --color-primaryDark-rgb: 21, 101, 192; /* #1565c0 */
+  --color-secondary-rgb: 220, 0, 78; /* #dc004e */
+  --color-text-rgb: 33, 37, 41; /* #212529 */
+  --color-border-rgb: 222, 226, 230; /* #dee2e6 */
+  --color-error-rgb: 220, 53, 69; /* #dc3545 */
+  --color-success-rgb: 40, 167, 69; /* #28a745 */
+  --color-warning-rgb: 255, 193, 7; /* #ffc107 */
+  --color-info-rgb: 23, 162, 184; /* #17a2b8 */
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;

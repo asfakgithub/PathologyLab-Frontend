@@ -13,8 +13,14 @@ const ThemeHandler = () => {
     const fetchThemes = async () => {
       try {
         const themesData = await themeService.getThemes();
-        if (themesData?.data?.themes) {
-          setThemes(themesData.data.themes);
+        // Support multiple response formats: { data: [...] } or { data: { themes: [...] } } or direct array
+        const payload = themesData?.data ?? themesData;
+        if (Array.isArray(payload)) {
+          setThemes(payload);
+        } else if (payload && Array.isArray(payload.themes)) {
+          setThemes(payload.themes);
+        } else if (payload && Array.isArray(payload.data)) {
+          setThemes(payload.data);
         }
       } catch (error) {
         console.error('Error fetching themes for handler:', error);

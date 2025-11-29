@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import patientService from '../../services/patientService';
 import { SettingsContext } from '../../context/SettingsContext';
+import { IconButton} from '@mui/material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 
 const PateintReport = (props) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [patient, setPatient] = useState(null);
@@ -66,7 +69,7 @@ const PateintReport = (props) => {
   }, [patientId]);
 
   if (loading) return <div style={{ padding: 20 }}>Loading...</div>;
-  if (error) return <div style={{ padding: 20, color: 'red' }}>Error: {error}</div>;
+  if (error) return <div style={{ padding: 20, color: 'var(--color-error)' }}>Error: {error}</div>;
 
   // Helper: only render rows/fields that have values
   const hasValue = (v) => v !== null && v !== undefined && String(v).trim() !== '';
@@ -108,10 +111,12 @@ const PateintReport = (props) => {
 
       <div style={styles.header}>
         <h1 style={styles.headerTitle}>{settings.organization?.name || 'THYRO DIAGNOSTIC'}</h1>
+        <p style={styles.headerSubtitle}>{settings.organization?.address || '123, Main Street, City, Country'}</p>
+        <p style={styles.headerSubtitle}>License: {settings.organization?.license || '+1-234-567-890'}</p>
         <p style={styles.headerSubtitle}>Medical Laboratory Report</p>
       </div>
 
-      <div className="no-print" style={{ padding: 10, background: '#fff8e1', border: '1px solid #ffe08a', marginBottom: 12 }}>
+      <div className="no-print" style={{ padding: 10, background: 'var(--color-backgroundTertiary)', border: '1px solid var(--color-borderLight)', marginBottom: 12 }}>
         <strong>Debug:</strong>
         <div>patientId: <code>{patientId || 'none'}</code></div>
         <div>route params id: <code>{routeParams?.id || 'none'}</code></div>
@@ -213,6 +218,12 @@ const PateintReport = (props) => {
       })}
 
       <div style={{ display: 'flex', gap: 8, margin: '12px 0' }} className="no-print">
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{ mr: 2, color: 'primary.main' }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
         <button onClick={handleDownload}>Download / Print</button>
       </div>
 
@@ -229,36 +240,36 @@ const styles = {
     fontFamily: 'Arial, sans-serif',
     maxWidth: '210mm',
     margin: '0 auto',
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--color-surface)',
     padding: '20px',
     fontSize: '12px',
-    color: '#333'
+    color: 'var(--color-text)'
   },
   header: {
     textAlign: 'center',
-    borderBottom: '3px solid #2c5aa0',
+    borderBottom: '3px solid var(--color-primary)',
     paddingBottom: '15px',
     marginBottom: '20px'
   },
   headerTitle: {
     margin: '0 0 5px 0',
     fontSize: '24px',
-    color: '#2c5aa0',
+    color: 'var(--color-primary)',
     fontWeight: 'bold'
   },
   headerSubtitle: {
     margin: 0,
     fontSize: '14px',
-    color: '#666'
+    color: 'var(--color-textSecondary)'
   },
   page: {
     marginBottom: '30px'
   },
   detailsSection: {
     marginBottom: '15px',
-    border: '1px solid #ddd',
+    border: '1px solid var(--color-border)',
     padding: '10px',
-    backgroundColor: '#f9f9f9'
+    backgroundColor: 'var(--color-backgroundSecondary)'
   },
   detailsGrid: {
     display: 'grid',
@@ -272,14 +283,14 @@ const styles = {
   label: {
     fontWeight: 'bold',
     minWidth: '120px',
-    color: '#555'
+    color: 'var(--color-textSecondary)'
   },
   value: {
-    color: '#333'
+    color: 'var(--color-text)'
   },
   categoryHeader: {
-    backgroundColor: '#2c5aa0',
-    color: '#fff',
+    backgroundColor: 'var(--color-primary)',
+    color: 'var(--color-surface)',
     padding: '8px 12px',
     fontSize: '14px',
     fontWeight: 'bold',
@@ -290,35 +301,35 @@ const styles = {
     width: '100%',
     borderCollapse: 'collapse',
     marginBottom: '20px',
-    border: '1px solid #ddd'
+    border: '1px solid var(--color-border)'
   },
   tableHeaderRow: {
-    backgroundColor: '#4a7bc3'
+    backgroundColor: 'var(--color-primaryLight)'
   },
   tableHeader: {
     padding: '10px',
     textAlign: 'left',
     fontWeight: 'bold',
-    color: '#fff',
-    border: '1px solid #ddd',
+    color: 'var(--color-surface)',
+    border: '1px solid var(--color-border)',
     fontSize: '12px'
   },
   tableRow: {
-    borderBottom: '1px solid #ddd'
+    borderBottom: '1px solid var(--color-border)'
   },
   tableCell: {
     padding: '8px',
-    border: '1px solid #ddd',
+    border: '1px solid var(--color-border)',
     fontSize: '11px'
   },
   pageBreak: {
-    borderTop: '2px dashed #ccc',
+    borderTop: '2px dashed var(--color-borderLight)',
     marginTop: '30px',
     marginBottom: '30px'
   },
   footer: {
     textAlign: 'center',
-    borderTop: '3px solid #2c5aa0',
+    borderTop: '3px solid var(--color-primary)',
     paddingTop: '15px',
 marginTop: '30px'
   },
@@ -326,12 +337,12 @@ marginTop: '30px'
     margin: '10px 0',
     fontSize: '14px',
     fontWeight: 'bold',
-    color: '#2c5aa0'
+    color: 'var(--color-primary)'
   },
   footerNote: {
     margin: '5px 0',
     fontSize: '10px',
-    color: '#666',
+    color: 'var(--color-textSecondary)',
     fontStyle: 'italic'
   }
 };

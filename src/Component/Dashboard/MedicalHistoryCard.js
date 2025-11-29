@@ -37,7 +37,7 @@ const MedicalHistoryCard = ({ patient, isConnected, onClick }) => {
             <span
               key={idx}
               className="px-3 py-1 bg-red-500/20 border border-red-400 rounded-full text-sm"
-              style={{ color: isConnected ? 'white' : '#fca5a5' }}
+              style={{ color: isConnected ? 'white' : 'var(--color-error)' }}
             >
               {renderValue(allergy)}
             </span>

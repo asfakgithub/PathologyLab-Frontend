@@ -22,8 +22,6 @@ import Messages from './Component/Dashboard/Messages';
 // Report Components
 import ReportForm from './Component/Pages/ReportPage/ReportForm';
 import Report from './Component/Pages/ReportPage/report';
-
-import './App.css';
 import ViewPatient from './Component/Dashboard/ViewPatient';
 
 import PateintReport from './Component/Dashboard/PateintReport';
@@ -32,7 +30,11 @@ import ErrorBoundary from './Component/common/ErrorBoundary';
 // MUI Theme Creator Component
 const MuiThemeCreator = ({ children }) => {
   const { theme: appTheme } = useTheme();
-  
+  if (!appTheme) {
+    // Theme not loaded yet; render children without MUI theme to avoid runtime errors.
+    return <>{children}</>;
+  }
+
   const muiTheme = createTheme({
     palette: {
       mode: appTheme.name === 'Light' ? 'light' : 'dark',
@@ -212,8 +214,7 @@ function AppContent() {
 
   return (
     <div className="App">
-      <AuthProvider>
-        <MuiThemeCreator>
+          <AuthProvider>
           <ThemeHandler />
           <Box sx={{ minHeight: '100vh' }}>
             <Routes>
@@ -387,8 +388,8 @@ function AppContent() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Box>
-      </MuiThemeCreator>
     </AuthProvider>
+
   </div>
   );
 }
@@ -397,9 +398,11 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <SettingsProvider>
-        <AppContent />
-      </SettingsProvider>
+      <MuiThemeCreator>
+        <SettingsProvider>
+          <AppContent />
+        </SettingsProvider>
+      </MuiThemeCreator>
     </ThemeProvider>
   );
 }
