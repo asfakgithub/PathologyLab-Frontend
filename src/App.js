@@ -314,7 +314,7 @@ function AppContent() {
 
             {/* Report Create/Edit Form (outside Dashboard layout) */}
             <Route 
-              path="/report/create/:id" 
+              path="/report/create/:id?" 
               element={
                 <ProtectedRoute allowedRoles={["master", "admin", "doctor", "technician"]}>
                   <React.Suspense fallback={<LoadingSpinner />}>

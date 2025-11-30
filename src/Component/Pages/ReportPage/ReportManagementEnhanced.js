@@ -51,6 +51,7 @@ import {
   Download as DownloadIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import JSZip from 'jszip';
 import patientService from '../../../services/patientService';
 
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString();
@@ -67,6 +68,7 @@ const ReportManagementEnhanced = () => {
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [selectedReports, setSelectedReports] = useState(new Set());
   const navigate = useNavigate();
 
   const showSnackbar = useCallback((message, severity = 'success') => {
@@ -99,6 +101,62 @@ const ReportManagementEnhanced = () => {
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
+          <Button
+            variant="outlined"
+            startIcon={<ExportIcon />}
+            onClick={async () => {
+              // Export all reports as individual PDFs (client-side fallback)
+              if (!reports || reports.length === 0) {
+                showSnackbar('No reports to export', 'info');
+                return;
+              }
+              setLoading(true);
+              try {
+                const promises = reports.map(rpt =>
+                  patientService.exportPatientData(rpt._id, 'pdf')
+                    .then(resp => ({ status: 'fulfilled', rpt, resp }))
+                    .catch(err => ({ status: 'rejected', rpt, err }))
+                );
+
+                const results = await Promise.all(promises);
+
+                let successCount = 0;
+                for (const res of results) {
+                  if (res.status === 'fulfilled') {
+                    try {
+                      const resp = res.resp;
+                      const blobData = resp.data || resp;
+                      const blob = blobData instanceof Blob ? blobData : new Blob([blobData], { type: 'application/pdf' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      const filename = `${(res.rpt.patient && (res.rpt.patient.name || res.rpt.patient.patientName)) || res.rpt.reportId || res.rpt._id}.pdf`;
+                      a.href = url;
+                      a.download = filename;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      window.URL.revokeObjectURL(url);
+                      successCount++;
+                    } catch (e) {
+                      console.error('Failed to save blob for', res.rpt, e);
+                    }
+                  } else {
+                    console.error('Export rejected for', res.rpt, res.err);
+                  }
+                }
+
+                showSnackbar(`Exported ${successCount}/${reports.length} reports (browser downloads).`, successCount === reports.length ? 'success' : 'warning');
+              } catch (err) {
+                console.error('Export all failed', err);
+                showSnackbar('Failed to export all reports', 'error');
+              } finally {
+                setLoading(false);
+              }
+            }}
+            sx={{ ml: 2 }}
+          >
+            Export All
+          </Button>
 
   // Filter reports
   useEffect(() => {
@@ -164,7 +222,8 @@ const ReportManagementEnhanced = () => {
 
   const handleCreateReport = () => {
     setSelectedReport(null);
-    navigate('/dashboard/reports/create');
+    // Navigate to the standalone report create page (no patient id)
+    navigate('/report/create');
   };
 
   const ReportViewDialog = () => (
@@ -233,14 +292,14 @@ const ReportManagementEnhanced = () => {
                     {selectedReport.tests.map((test, index) => (
                       <ListItem key={test.testId || index}>
                         <ListItemText
-                          primary={test.testName}
-                          secondary={`Category: ${test.category}`}
+                          primary={test.testName || test.name || test.title || 'Unnamed Test'}
+                          secondary={`Category: ${test.category || test.testCategory || test.type || 'N/A'}`}
                         />
                         <ListItemSecondaryAction>
                           <Chip
-                            label={test.status}
+                            label={test.status || test.state || 'N/A'}
                             size="small"
-                            color={getStatusColor(test.status)}
+                            color={getStatusColor(test.status || test.state)}
                           />
                         </ListItemSecondaryAction>
                       </ListItem>
@@ -297,7 +356,7 @@ const ReportManagementEnhanced = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Doctor</Typography>
-                      <Typography variant="body1">{selectedReport.examinedBy || 'N/A'}</Typography>
+                      <Typography variant="body1">{selectedReport.examinedBy || selectedReport.doctorName || selectedReport.doctor?.name || selectedReport.referredBy || 'N/A'}</Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Critical Values</Typography>
@@ -479,6 +538,10 @@ const ReportManagementEnhanced = () => {
                 fullWidth
                 variant="outlined"
                 startIcon={<ExportIcon />}
+                onClick={() => {
+                  // Export UI action moved to per-selection control below
+                  showSnackbar('Use the checkboxes to select reports and click Export Selected.', 'info');
+                }}
               >
                 Export All
               </Button>
@@ -492,6 +555,19 @@ const ReportManagementEnhanced = () => {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell padding="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={filteredReports.length > 0 && selectedReports.size === filteredReports.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedReports(new Set(filteredReports.map(r => r._id)));
+                        } else {
+                          setSelectedReports(new Set());
+                        }
+                      }}
+                    />
+                  </TableCell>
                   <TableCell>Report ID</TableCell>
                   <TableCell>Patient</TableCell>
                   <TableCell>Tests</TableCell>
@@ -507,6 +583,17 @@ const ReportManagementEnhanced = () => {
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((report) => (
                     <TableRow key={report._id} hover>
+                      <TableCell padding="checkbox">
+                        <input
+                          type="checkbox"
+                          checked={selectedReports.has(report._id)}
+                          onChange={(e) => {
+                            const copy = new Set(selectedReports);
+                            if (e.target.checked) copy.add(report._id); else copy.delete(report._id);
+                            setSelectedReports(copy);
+                          }}
+                        />
+                      </TableCell>
                       <TableCell>
                         <Box display="flex" alignItems="center">
                           <ReportIcon color="primary" sx={{ mr: 1 }} />
@@ -585,6 +672,64 @@ const ReportManagementEnhanced = () => {
               setPage(0);
             }}
           />
+          <Box p={2} display="flex" gap={2} alignItems="center">
+            <Button
+              variant="contained"
+              startIcon={<ExportIcon />}
+              disabled={selectedReports.size === 0}
+              onClick={async () => {
+                // Export selected reports as a single ZIP of PDFs (client-side using JSZip)
+                try {
+                  setLoading(true);
+                  const zip = new JSZip();
+                  const ids = Array.from(selectedReports);
+                  const promises = ids.map(id =>
+                    patientService.exportPatientData(id, 'pdf')
+                      .then(resp => ({ id, resp }))
+                      .catch(err => ({ id, err }))
+                  );
+                  const results = await Promise.all(promises);
+                  let added = 0;
+                  for (const r of results) {
+                    if (r.err) {
+                      console.error('Failed export for', r.id, r.err);
+                      continue;
+                    }
+                    const resp = r.resp;
+                    const blobData = resp.data || resp;
+                    const blob = blobData instanceof Blob ? blobData : new Blob([blobData], { type: 'application/pdf' });
+                    const filename = `${r.id}.pdf`;
+                    zip.file(filename, blob);
+                    added++;
+                  }
+
+                  if (added === 0) {
+                    showSnackbar('No files could be exported.', 'error');
+                    return;
+                  }
+
+                  const content = await zip.generateAsync({ type: 'blob' });
+                  const url = window.URL.createObjectURL(content);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `reports_${Date.now()}.zip`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  window.URL.revokeObjectURL(url);
+                  showSnackbar(`Exported ${added} reports as ZIP`, 'success');
+                } catch (err) {
+                  console.error('Export selected failed', err);
+                  showSnackbar('Export failed', 'error');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              Export Selected (ZIP)
+            </Button>
+            <Button variant="outlined" onClick={() => setSelectedReports(new Set())}>Clear Selection</Button>
+          </Box>
         </Paper>
 
         {/* View Dialog */ }

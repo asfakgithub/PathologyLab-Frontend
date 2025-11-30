@@ -48,19 +48,27 @@ const ViewPatient = (props) => {
           console.log('ViewPatient: patientService.getPatientById response=', res);
 
         // Backend returns { message, data: { patient, enrichedTests, results } }
-        const payload = res.data || res;
-        const fetchedPatient = payload.patient || payload;
-        const fetchedEnriched = payload.enrichedTests || [];
-        const fetchedResults = payload.results || [];
+        // Normalize payload to support both res.data.data and older res.data shapes
+        let payload = res && res.data ? res.data : res;
+        if (payload && payload.data) payload = payload.data;
+        const fetchedPatient = payload && (payload.patient || payload) ? (payload.patient || payload) : null;
+        const fetchedEnriched = (payload && payload.enrichedTests) ? payload.enrichedTests : [];
+        const fetchedResults = (payload && payload.results) ? payload.results : [];
 
         setPatient(fetchedPatient);
         setEnrichedTests(fetchedEnriched);
 
         // Build results map keyed by `${testId}_${subtestId || 'custom'}`
+        // Also map entries by `tempId` when backend returns custom/temp entries so inputs match saved values
         const map = {};
         (fetchedResults || []).forEach(r => {
-          const key = `${r.testId || ''}_${r.subtestId || 'custom'}`;
-          map[key] = r;
+          const keyBySub = `${r.testId || ''}_${r.subtestId || 'custom'}`;
+          map[keyBySub] = r;
+          // if backend provided a tempId for a custom subtest, also map that key
+          if (r.tempId) {
+            const keyByTemp = `${r.testId || ''}_${r.tempId}`;
+            map[keyByTemp] = r;
+          }
         });
         setResultsMap(map);
       } catch (err) {
@@ -199,14 +207,13 @@ const ViewPatient = (props) => {
     if (!range) return '';
     if (typeof range === 'string') return range;
     if (typeof range === 'object') {
-      // Structured shape: male/female/child/infant with min/max
       const hasStructured = ['male','female','child','infant'].some(k => !!range[k]);
       if (hasStructured) {
         const genderRaw = (patient && patient.gender) ? String(patient.gender).toLowerCase() : '';
-        const age = Number(patient?.age) || null;
+        const age = Number(patient?.age);
         let group = 'male';
-        if (genderRaw.startsWith('f')) group = 'female';
-        else if (age !== null) {
+        if (genderRaw && genderRaw.startsWith('f')) group = 'female';
+        else if (!isNaN(age)) {
           if (age < 1) group = 'infant';
           else if (age < 18) group = 'child';
           else group = 'male';
@@ -214,22 +221,24 @@ const ViewPatient = (props) => {
         const g = range[group] || {};
         const min = g.min || '';
         const max = g.max || '';
-        if (min || max) return `${min}${max ? ' - ' + max : ''}`.trim();
+        if (min || max) return `${capitalize(group)}: ${min}${max ? ' - ' + max : ''}`.trim();
 
-        // Fallback: show combined brief
+        // Fallback: list available groups
         const parts = [];
-        if (range.male) parts.push(`M: ${range.male.min || ''}${range.male.max ? ' - ' + range.male.max : ''}`);
-        if (range.female) parts.push(`F: ${range.female.min || ''}${range.female.max ? ' - ' + range.female.max : ''}`);
+        if (range.male) parts.push(`Male: ${range.male.min || ''}${range.male.max ? ' - ' + range.male.max : ''}`);
+        if (range.female) parts.push(`Female: ${range.female.min || ''}${range.female.max ? ' - ' + range.female.max : ''}`);
         if (range.child) parts.push(`Child: ${range.child.min || ''}${range.child.max ? ' - ' + range.child.max : ''}`);
         if (range.infant) parts.push(`Infant: ${range.infant.min || ''}${range.infant.max ? ' - ' + range.infant.max : ''}`);
         return parts.join(', ');
       }
 
       // Legacy shape: adult/child
-      return `Adult: ${range.adult || ''}, Child: ${range.child || ''}`;
+      if (range.adult || range.child) return `Adult: ${range.adult || ''}${range.child ? ', Child: ' + range.child : ''}`;
     }
     return '';
   };
+
+  const capitalize = (s) => typeof s === 'string' && s.length ? s.charAt(0).toUpperCase() + s.slice(1) : s;
   const savePatientInfo = async () => {
     try {
       setLoading(true);
@@ -317,12 +326,37 @@ const ViewPatient = (props) => {
     tests: enrichedTests.map(t => ({
       category: t.category || '',
       title: t.testName || '',
-      results: t.selectedSubtests || []
+      // Deduplicate selectedSubtests using a Set of keys to avoid duplicate rows
+      results: (() => {
+        const seen = new Set();
+        const out = [];
+        (t.selectedSubtests || []).forEach(s => {
+          const key = (s.subtestId || s.tempId || s.subtestName || JSON.stringify(s)).toString();
+          if (!seen.has(key)) {
+            seen.add(key);
+            out.push(s);
+          }
+        });
+        return out;
+      })()
     }))
   };
 
   return (
     <div style={styles.container}>
+      {/* Left-middle floating save/controls - hidden when printing */}
+      <div className="no-print" style={{ position: 'fixed', left: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 1200 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button onClick={savePatientInfo} style={{ padding: '8px 10px' }}>Save Patient Info</button>
+          <button onClick={saveResults} style={{ padding: '8px 10px' }}>Save Results</button>
+          <button onClick={() => addCustomTest()} style={{ padding: '8px 10px' }}>Add Custom Test</button>
+          <button onClick={() => {
+            const id = patientId;
+            if (id) navigate(`/patient-report/${id}`);
+            else alert('No patient id available for preview');
+          }} style={{ padding: '8px 10px' }}>Preview</button>
+        </div>
+      </div>
       <div style={{ padding: '10px 0', borderBottom: '1px solid var(--color-borderLight)', marginBottom: '15px' }} className="no-print">
         <IconButton onClick={() => navigate(-1)} color="primary">
           <ArrowBackIcon />
@@ -495,7 +529,7 @@ const ViewPatient = (props) => {
                       <td style={styles.tableCell}>
                       <input
                         style={{ width: '90%' }}
-                        value={formatReferenceRange(existing.referenceRange || (ss.parameter && ss.parameter.referenceRange) || existing.normalRange || (ss.parameter && ss.parameter.normalRange))}
+                        value={existing.normalRange || (typeof existing.referenceRange === 'string' ? existing.referenceRange : formatReferenceRange((ss.parameter && ss.parameter.referenceRange) || (ss.parameter && ss.parameter.normalRange) || existing.referenceRange))}
                         onChange={(e) => handleResultChange(testId, subtestId || tempId, 'normalRange', e.target.value)}
                       />
                     </td>
