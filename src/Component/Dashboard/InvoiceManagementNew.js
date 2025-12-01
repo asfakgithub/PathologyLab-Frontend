@@ -129,15 +129,15 @@ const InvoiceManagementNew = () => {
         const invoiceToDelete = invoices.find(inv => inv.invoiceId === invoiceId);
         await invoiceService.deleteInvoice(invoiceId);
         if (invoiceToDelete) {
-              try {
-              await sendSystemNotification({
-                message: `Invoice ${invoiceToDelete.invoiceNumber || invoiceToDelete.invoiceId} for patient ${invoiceToDelete.patientName || invoiceToDelete.patientId || 'Unknown'} has been deleted.`,
-                recipient: selectedRecipient?._id,
-                recipientEmail: selectedRecipient?.email
-              });
-            } catch (notificationError) {
-              console.error('Failed to send invoice deletion notification:', notificationError);
-            }
+          try {
+            await sendSystemNotification({
+              message: `Invoice ${invoiceToDelete.invoiceNumber || invoiceToDelete.invoiceId} for patient ${invoiceToDelete.patientName || invoiceToDelete.patientId || 'Unknown'} has been deleted.`,
+              recipient: selectedRecipient?._id,
+              recipientEmail: selectedRecipient?.email
+            });
+          } catch (notificationError) {
+            console.error('Failed to send invoice deletion notification:', notificationError);
+          }
         }
         setSuccess('Invoice deleted successfully');
         fetchInvoices();
@@ -161,7 +161,7 @@ const InvoiceManagementNew = () => {
       default: return 'default';
     }
   };
-  
+
   const { billingEnabled, allowEdit, allowDelete } = settings.invoice || {};
 
   const filteredInvoices = invoices.filter(invoice =>
@@ -452,11 +452,11 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
     patientPhone: '',
     patientEmail: '',
     patientAddress: '',
-    
+
     // Doctor Information
     doctorName: '',
     referredBy: '',
-    
+
     // Invoice Information
     invoiceNumber: '',
     testDetails: [],
@@ -492,11 +492,11 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
     if (open) {
       fetchTests();
       if (invoice) {
-        setFormData({ 
-            ...invoice, 
-            gstPercentage: invoice.gstPercentage || settings?.defaultGST || 18,
-            discountPercentage: invoice.discountPercentage || settings?.discountPercent || 0,
-            additionalCharges: invoice.additionalCharges || settings?.additionalCharges || 0
+        setFormData({
+          ...invoice,
+          gstPercentage: invoice.gstPercentage || settings?.defaultGST || 18,
+          discountPercentage: invoice.discountPercentage || settings?.discountPercent || 0,
+          additionalCharges: invoice.additionalCharges || settings?.additionalCharges || 0
         });
       } else {
         resetForm();
@@ -526,7 +526,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      
+
       if (invoice) {
         await invoiceService.updateInvoice(invoice.invoiceId, formData);
         try {
@@ -550,7 +550,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
           console.error('Failed to send invoice creation notification:', notificationError);
         }
       }
-      
+
       onSuccess();
     } catch (error) {
       onError('Failed to save invoice: ' + error.message);
@@ -573,7 +573,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
       testPrice: test.price || 0,
       category: test.category || 'General'
     };
-    
+
     setFormData(prev => ({
       ...prev,
       testDetails: [...prev.testDetails, newTest]
@@ -595,7 +595,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
     const gstAmount = (taxableAmount * (formData.gstPercentage || 0)) / 100;
     const additionalCharges = formData.additionalCharges || 0;
     const total = taxableAmount + gstAmount + additionalCharges;
-    
+
     return {
       subtotal,
       discountAmount,
@@ -609,7 +609,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-                  <DialogTitle>
+      <DialogTitle>
         {invoice ? 'Edit Invoice' : 'Create New Invoice'}
       </DialogTitle>
       <DialogContent>
@@ -905,11 +905,11 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                 <Typography variant="body2"><strong>Invoice ID:</strong> {invoice.invoiceId}</Typography>
                 <Typography variant="body2"><strong>Invoice Number:</strong> {invoice.invoiceNumber || invoice.invoiceId}</Typography>
                 <Typography variant="body2"><strong>Date:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</Typography>
-                <Typography variant="body2"><strong>Status:</strong> 
-                  <Chip 
-                    label={invoice.status?.toUpperCase()} 
-                    color={invoice.status === 'paid' ? 'success' : 'warning'} 
-                    size="small" 
+                <Typography variant="body2"><strong>Status:</strong>
+                  <Chip
+                    label={invoice.status?.toUpperCase()}
+                    color={invoice.status === 'paid' ? 'success' : 'warning'}
+                    size="small"
                     sx={{ ml: 1 }}
                   />
                 </Typography>
@@ -935,13 +935,13 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {invoice.testDetails?.map((test, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{test.testName}</TableCell>
-                          <TableCell>{test.testCode}</TableCell>
-                          <TableCell>{test.category}</TableCell>
-                          <TableCell align="right">₹{test.testPrice?.toFixed(2)}</TableCell>
-                        </TableRow>
+                      {invoice.items?.map((item, index) => (
+                        <React.Fragment key={index}>
+                          <TableRow>
+                            <TableCell><strong>{item.name}</strong></TableCell>
+                            <TableCell align="right"><strong>₹{item.price?.toFixed(2)}</strong></TableCell>
+                          </TableRow>
+                        </React.Fragment>
                       ))}
                     </TableBody>
                   </Table>
@@ -1013,10 +1013,10 @@ const PaymentDialog = ({ open, onClose, invoice, onSuccess, onError, selectedRec
   }, [invoice, open]);
 
   const handlePayment = async () => {
-      try {
+    try {
       setLoading(true);
       const amount = parseFloat(paymentAmount);
-      
+
       if (amount <= 0 || amount > invoice.dueAmount) {
         onError('Invalid payment amount');
         return;
