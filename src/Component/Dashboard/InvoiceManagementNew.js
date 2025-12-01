@@ -615,7 +615,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
       <DialogContent>
         <Stepper activeStep={activeStep} orientation="vertical">
           {/* Step 1: Patient Information */}
-          <Step>
+          {/* <Step>
             <StepLabel>Patient Information</StepLabel>
             <StepContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -701,7 +701,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
                 </Button>
               </Box>
             </StepContent>
-          </Step>
+          </Step> */}
 
           {/* Step 2: Tests and Pricing */}
           <Step>
@@ -881,7 +881,7 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
       </DialogTitle>
       <DialogContent>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          {/* <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom color="primary">
@@ -895,7 +895,7 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                 <Typography variant="body2"><strong>Address:</strong> {invoice.patientAddress}</Typography>
               </CardContent>
             </Card>
-          </Grid>
+          </Grid> */}
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
@@ -913,8 +913,8 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                     sx={{ ml: 1 }}
                   />
                 </Typography>
-                <Typography variant="body2"><strong>Doctor:</strong> {invoice.doctorName}</Typography>
-                <Typography variant="body2"><strong>Referred By:</strong> {invoice.referredBy}</Typography>
+                {/* <Typography variant="body2"><strong>Doctor:</strong> {invoice.doctorName}</Typography> */}
+                {/* <Typography variant="body2"><strong>Referred By:</strong> {invoice.referredBy}</Typography> */}
               </CardContent>
             </Card>
           </Grid>
@@ -929,8 +929,8 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                     <TableHead>
                       <TableRow>
                         <TableCell><strong>Test Name</strong></TableCell>
-                        <TableCell><strong>Code</strong></TableCell>
-                        <TableCell><strong>Category</strong></TableCell>
+                        {/* <TableCell><strong>Code</strong></TableCell> */}
+                        {/* <TableCell><strong>Category</strong></TableCell> */}
                         <TableCell align="right"><strong>Price</strong></TableCell>
                       </TableRow>
                     </TableHead>
