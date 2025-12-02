@@ -8,7 +8,7 @@ export const invoiceAPI = {
   // Create new invoice
   createInvoice: async (invoiceData) => {
     try {
-      const response = await apiClient.post('/api/v1/invoices/create', invoiceData);
+      const response = await apiClient.post('/invoices', invoiceData);
       return response;
     } catch (error) {
       throw error;
@@ -19,7 +19,7 @@ export const invoiceAPI = {
   getAllInvoices: async (params = {}) => {
     try {
       const queryParams = new URLSearchParams(params).toString();
-      const url = queryParams ? `/invoice?${queryParams}` : '/invoice';
+      const url = queryParams ? `/invoices?${queryParams}` : '/invoices';
       const response = await apiClient.get(url);
       return response;
     } catch (error) {
@@ -30,7 +30,7 @@ export const invoiceAPI = {
   // Get invoice by ID
   getInvoiceById: async (invoiceId) => {
     try {
-      const response = await apiClient.get(`/invoice/${invoiceId}`);
+      const response = await apiClient.get(`/invoices/${invoiceId}`);
       return response;
     } catch (error) {
       throw error;
@@ -40,7 +40,7 @@ export const invoiceAPI = {
   // Update invoice
   updateInvoice: async (invoiceId, invoiceData) => {
     try {
-      const response = await apiClient.put(`/invoice/${invoiceId}`, invoiceData);
+      const response = await apiClient.put(`/invoices/${invoiceId}`, invoiceData);
       return response;
     } catch (error) {
       throw error;
@@ -50,7 +50,7 @@ export const invoiceAPI = {
   // Delete invoice
   deleteInvoice: async (invoiceId) => {
     try {
-      const response = await apiClient.delete(`/invoice/${invoiceId}`);
+      const response = await apiClient.delete(`/invoices/${invoiceId}`);
       return response;
     } catch (error) {
       throw error;
@@ -58,9 +58,15 @@ export const invoiceAPI = {
   },
 
   // Add payment to invoice
+  // Add payment to invoice (backend uses PATCH /invoices/status/:invoiceId)
   addPayment: async (invoiceId, paymentData) => {
     try {
-      const response = await apiClient.post(`/invoice/payment/${invoiceId}`, paymentData);
+      // backend expects { amountPaid, paymentMethod } in body
+      const body = {
+        amountPaid: paymentData.amount ?? paymentData.amountPaid ?? 0,
+        paymentMethod: paymentData.paymentMethod || paymentData.method || 'cash'
+      };
+      const response = await apiClient.patch(`/invoices/status/${invoiceId}`, body);
       return response;
     } catch (error) {
       throw error;
@@ -68,9 +74,11 @@ export const invoiceAPI = {
   },
 
   // Get invoice payment history
+  // Get invoice payment history (fetch invoice and read payments)
   getPaymentHistory: async (invoiceId) => {
     try {
-      const response = await apiClient.get(`/invoice/payment/${invoiceId}`);
+      const response = await apiClient.get(`/invoices/${invoiceId}`);
+      // response should include invoice.payments — caller can read it
       return response;
     } catch (error) {
       throw error;
@@ -80,7 +88,7 @@ export const invoiceAPI = {
   // Get invoice statistics
   getInvoiceStats: async () => {
     try {
-      const response = await apiClient.get('/invoice/stats');
+      const response = await apiClient.get('/invoices/stats');
       return response;
     } catch (error) {
       throw error;
@@ -90,7 +98,7 @@ export const invoiceAPI = {
   // Get outstanding invoices
   getOutstandingInvoices: async () => {
     try {
-      const response = await apiClient.get('/invoice/outstanding');
+      const response = await apiClient.get('/invoices/outstanding');
       return response;
     } catch (error) {
       throw error;
@@ -100,7 +108,7 @@ export const invoiceAPI = {
   // Generate invoice PDF
   generateInvoicePDF: async (invoiceId) => {
     try {
-      const response = await apiClient.get(`/invoice/${invoiceId}/pdf`, {
+      const response = await apiClient.get(`/invoices/${invoiceId}/pdf`, {
         responseType: 'blob'
       });
       return response;
@@ -112,7 +120,7 @@ export const invoiceAPI = {
   // Send invoice via email
   sendInvoiceEmail: async (invoiceId, emailData) => {
     try {
-      const response = await apiClient.post(`/invoice/${invoiceId}/send-email`, emailData);
+      const response = await apiClient.post(`/invoices/${invoiceId}/send-email`, emailData);
       return response;
     } catch (error) {
       throw error;
@@ -122,7 +130,7 @@ export const invoiceAPI = {
   // Export invoices data
   exportInvoicesData: async (format = 'csv') => {
     try {
-      const response = await apiClient.get('/invoice/export', {
+      const response = await apiClient.get('/invoices/export', {
         params: { format },
         responseType: 'blob'
       });
@@ -135,7 +143,7 @@ export const invoiceAPI = {
   // Search invoices
   searchInvoices: async (searchQuery) => {
     try {
-      const response = await apiClient.get('/invoice/search', {
+      const response = await apiClient.get('/invoices/search', {
         params: { q: searchQuery }
       });
       return response;

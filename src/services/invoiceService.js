@@ -70,9 +70,13 @@ export const invoiceService = {
   // Add payment to invoice
   addPayment: async (invoiceId, paymentData) => {
     try {
-      const endpoint = endpoints.invoices.addPayment(invoiceId);
-      console.log('📡 ADD PAYMENT TO INVOICE REQUEST:', `[POST]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
-      const response = await apiClient.post(endpoint, paymentData);
+      const endpoint = endpoints.invoices.addPayment(invoiceId); // /invoices/status/:id
+      const body = {
+        amountPaid: paymentData.amount ?? paymentData.amountPaid ?? 0,
+        paymentMethod: paymentData.paymentMethod || paymentData.method || 'cash'
+      };
+      console.log('📡 ADD PAYMENT TO INVOICE REQUEST:', `[PATCH]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL, 'body:', body);
+      const response = await apiClient.patch(endpoint, body);
       return response;
     } catch (error) {
       throw error;

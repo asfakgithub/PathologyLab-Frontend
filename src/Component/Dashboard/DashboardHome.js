@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { SettingsContext } from '../../context/SettingsContext';
-import api, { getPatientStats, getReportStats, getInvoiceStats, getPatients, getReports } from '../../services/api';
+import api, { getPatientStats, getReportStats, getInvoiceStats, getPatients, getReports, getPatient } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const StatCard = ({ title, value, icon, colorVar = 'var(--color-primary)', rgbVar = '--color-primary-rgb', change, changeText }) => (
@@ -80,7 +80,9 @@ const StatCard = ({ title, value, icon, colorVar = 'var(--color-primary)', rgbVa
   </Card>
 );
 
-const RecentActivity = ({ activities, loading }) => (
+const RecentActivity = ({ activities, loading }) => {
+  console.log('RecentActivity props:', { activities, loading });
+  return (
   <Paper sx={{ p: 2, height: '100%' }}>
     <Box display="flex" alignItems="center" justifyContent="between" mb={2}>
       <Typography variant="h6" fontWeight="bold">
@@ -124,9 +126,11 @@ const RecentActivity = ({ activities, loading }) => (
       </List>
     )}
   </Paper>
-);
+)};
 
-const TestStatusChart = ({ testStats, loading }) => (
+const TestStatusChart = ({ testStats, loading }) => {
+  console.log('TestStatusChart props:', { testStats, loading });
+  return (
   <Paper sx={{ p: 2, height: '100%' }}>
     <Typography variant="h6" fontWeight="bold" mb={2}>
       Test Status Overview
@@ -165,7 +169,7 @@ const TestStatusChart = ({ testStats, loading }) => (
       </Box>
     )}
   </Paper>
-);
+)};
 
 const DashboardHome = () => {
   const { user, hasAnyRole } = useAuth();
@@ -180,14 +184,17 @@ const DashboardHome = () => {
   });
   const [recentActivities, setRecentActivities] = useState([]);
   const [testStats, setTestStats] = useState({});
+
+  console.log('DashboardHome initial state:', { user, settings, loading, error, stats, recentActivities, testStats });
   
-  const widgetVisibility = useMemo(() => 
-    (settings.dashboard || []).reduce((acc, widget) => {
+  const widgetVisibility = useMemo(() => {
+    const visibility = (settings.dashboard || []).reduce((acc, widget) => {
       acc[widget.widgetKey] = widget.isVisible;
       return acc;
-    }, {}),
-    [settings.dashboard]
-  );
+    }, {});
+    console.log('Widget Visibility:', visibility);
+    return visibility;
+  }, [settings.dashboard]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -197,6 +204,7 @@ const DashboardHome = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching dashboard data...');
       // Fetch multiple stats in parallel
       const [pStatRes, rStatRes, invStatRes, recentPatientsRes, recentReportsRes, messagesRes] = await Promise.all([
         getPatientStats().catch(e => ({ data: {} })),
@@ -206,16 +214,18 @@ const DashboardHome = () => {
         getReports({ page: 1, limit: 5 }).catch(e => ({ data: { data: [] } })),
         api.get('/messages', { params: { page: 1, limit: 1 } }).catch(e => ({ unreadCount: 0 }))
       ]);
+      console.log('Fetched data responses:', { pStatRes, rStatRes, invStatRes, recentPatientsRes, recentReportsRes, messagesRes });
 
       // Parse responses (api wrapper returns different shapes in some helpers)
       const patientStats = pStatRes?.data?.stats || pStatRes?.stats || { total: 0 };
       const reportStats = rStatRes?.data?.stats || rStatRes?.stats || {};
       const invoiceStats = invStatRes?.data?.stats || invStatRes?.stats || { totalInvoices: 0, totalAmount: 0 };
-      const recentPatients = recentPatientsRes?.data?.data || recentPatientsRes?.data || [];
-      const recentReports = recentReportsRes?.data?.data || recentReportsRes?.data || [];
+      const recentPatients = recentPatientsRes?.data?.patients || [];
+      const recentReports = recentReportsRes?.data?.reports || [];
       const unreadMessages = messagesRes?.unreadCount ?? messagesRes?.data?.unreadCount ?? 0;
+      console.log('Parsed data:', { patientStats, reportStats, invoiceStats, recentPatients, recentReports, unreadMessages });
 
-      setStats({
+      const newStats = {
         patients: { total: patientStats.totalPatients ?? patientStats.total ?? 0, change: patientStats.change ?? 0 },
         tests: { total: reportStats.total ?? reportStats.totalReports ?? 0, change: reportStats.change ?? 0 },
         invoices: {
@@ -227,12 +237,15 @@ const DashboardHome = () => {
           change: invoiceStats.change ?? 0
         },
         revenue: { total: invoiceStats.totalAmount ?? 0, change: invoiceStats.revenueChange ?? 0 }
-      });
+      };
+      setStats(newStats);
+      console.log('Updated Stats:', newStats);
 
       // Build recent activities from recent patients/reports/invoices
       const activities = [];
       recentPatients.forEach(p => activities.push({ type: 'patient', description: `New patient: ${p.name || p.patientName || p.patientId || p.phone || 'Unknown'}`, timestamp: new Date(p.createdAt || p.createdAt).toLocaleString(), status: 'completed' }));
       recentReports.forEach(r => activities.push({ type: 'test', description: `Report: ${r.title || r.reportId || r._id}`, timestamp: new Date(r.createdAt || r.createdAt).toLocaleString(), status: r.status || 'pending' }));
+      console.log('Created recent activities:', activities);
 
       setRecentActivities(activities.slice(0, 10));
 
@@ -242,22 +255,29 @@ const DashboardHome = () => {
         pending: { count: reportStats.pending ?? 0, percentage: reportStats.total ? Math.round(((reportStats.pending || 0) / reportStats.total) * 100) : 0 },
         in_progress: { count: reportStats.in_progress ?? 0, percentage: reportStats.total ? Math.round(((reportStats.in_progress || 0) / reportStats.total) * 100) : 0 }
       };
+      console.log('Test overview stats:', testOverview);
 
       setTestStats(testOverview);
 
       // set unread messages as an analytic card
-      setStats(prev => ({ ...prev, messages: { total: unreadMessages, change: 0 } }));
+      setStats(prev => {
+        const updatedStats = { ...prev, messages: { total: unreadMessages, change: 0 } };
+        console.log('Final stats with messages:', updatedStats);
+        return updatedStats;
+      });
     } catch (err) {
       console.error('Dashboard data fetch error:', err);
       setError('Failed to load dashboard data');
       // Set dummy data for demonstration
-      setStats({
+      const dummyStats = {
         patients: { total: 1250, change: 12.5 },
         tests: { total: 3420, change: 8.3 },
         invoices: { total: 2180, change: -2.1 },
         revenue: { total: 125000, change: 15.7 }
-      });
-      setRecentActivities([
+      };
+      setStats(dummyStats);
+      console.log('Error - Set dummy stats:', dummyStats);
+      const dummyActivities = [
         {
           type: 'patient',
           description: 'New patient registered: John Doe',
@@ -276,20 +296,27 @@ const DashboardHome = () => {
           timestamp: '1 hour ago',
           status: 'pending'
         }
-      ]);
-      setTestStats({
+      ];
+      setRecentActivities(dummyActivities);
+      console.log('Error - Set dummy activities:', dummyActivities);
+      const dummyTestStats = {
         completed: { count: 150, percentage: 65 },
         pending: { count: 50, percentage: 22 },
         in_progress: { count: 30, percentage: 13 }
-      });
+      };
+      setTestStats(dummyTestStats);
+      console.log('Error - Set dummy test stats:', dummyTestStats);
     } finally {
       setLoading(false);
+      console.log('Finished fetching data, loading set to false.');
     }
   };
 
   if (loading) {
     return <LoadingSpinner />;
   }
+
+  console.log('Rendering DashboardHome component with props:', { user, hasAnyRole, settings, stats, recentActivities, testStats, error, widgetVisibility });
 
   return (
     <Box>
@@ -315,7 +342,8 @@ const DashboardHome = () => {
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
               title="Total Patients"
-              value={stats.patients.total.toLocaleString()}
+              
+              value={getPatients?.length.toLocaleString()}
               icon={<PeopleIcon />}
               colorVar="var(--color-primary)"
               rgbVar="--color-primary-rgb"

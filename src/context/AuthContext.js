@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
           dispatch({
             type: actionTypes.AUTH_SUCCESS,
             payload: {
-              user: result.user,
+              user: result.data.user,
               token: authService.getToken()
             }
           });
@@ -131,12 +131,16 @@ export const AuthProvider = ({ children }) => {
       const result = await authService.login(credentials);
       
       if (result.success) {
+        const { user, token, expiresIn } = result.data;
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        if (expiresIn) {
+            localStorage.setItem('tokenExpiry', new Date(Date.now() + authService.parseExpiryTime(expiresIn)).toISOString());
+        }
+
         dispatch({
           type: actionTypes.AUTH_SUCCESS,
-          payload: {
-            user: result.user,
-            token: result.token
-          }
+          payload: { user, token }
         });
         return { success: true };
       } else {
@@ -162,12 +166,16 @@ export const AuthProvider = ({ children }) => {
       const result = await authService.register(userData);
       
       if (result.success) {
+        const { user, token, expiresIn } = result.data;
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        if (expiresIn) {
+            localStorage.setItem('tokenExpiry', new Date(Date.now() + authService.parseExpiryTime(expiresIn)).toISOString());
+        }
+
         dispatch({
           type: actionTypes.AUTH_SUCCESS,
-          payload: {
-            user: result.user,
-            token: result.token
-          }
+          payload: { user, token }
         });
         return { success: true };
       } else {
@@ -192,6 +200,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('tokenExpiry');
       dispatch({ type: actionTypes.AUTH_LOGOUT });
     }
   };
@@ -201,9 +213,11 @@ export const AuthProvider = ({ children }) => {
       const result = await authService.updateProfile(profileData);
       
       if (result.success) {
+        const { user } = result.data;
+        localStorage.setItem('user', JSON.stringify(user));
         dispatch({
           type: actionTypes.UPDATE_USER,
-          payload: { user: result.user }
+          payload: { user }
         });
         return { success: true };
       }
@@ -237,13 +251,18 @@ export const AuthProvider = ({ children }) => {
       const result = await authService.resetPassword(token, passwordData);
       
       if (result.success) {
-        dispatch({
-          type: actionTypes.AUTH_SUCCESS,
-          payload: {
-            user: authService.getCurrentUser(),
-            token: result.token
-          }
-        });
+        const { token: authToken } = result.data;
+        localStorage.setItem('authToken', authToken);
+        const verifyResult = await authService.verifyToken();
+        if(verifyResult.success){
+            dispatch({
+                type: actionTypes.AUTH_SUCCESS,
+                payload: {
+                  user: verifyResult.data.user,
+                  token: authToken
+                }
+              });
+        }
       }
       
       return result;

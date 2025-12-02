@@ -242,7 +242,31 @@ const ViewPatient = (props) => {
   const savePatientInfo = async () => {
     try {
       setLoading(true);
-      await patientService.updatePatient(patientId, patient);
+      // Normalize patient payload to match backend schema
+      const payload = { ...(patient || {}) };
+
+      // Coerce age to number when possible
+      if (payload.age !== undefined && payload.age !== null) {
+        const n = Number(payload.age);
+        if (!isNaN(n)) payload.age = n;
+      }
+
+      // Accept alternate mobile/email keys from UI and map to backend names
+      if (!payload.mobileNo && (payload.mobile || payload.phone)) {
+        payload.mobileNo = payload.mobile || payload.phone;
+      }
+      if (!payload.email && payload.emailAddress) {
+        payload.email = payload.emailAddress;
+      }
+
+      // Ensure address is an object matching backend structure
+      if (payload.address && typeof payload.address === 'string') {
+        payload.address = { street: payload.address };
+      }
+
+      console.debug('savePatientInfo payload', payload);
+      const res = await patientService.updatePatient(patientId, payload);
+      console.debug('savePatientInfo response', res);
       alert('Patient info saved');
       try {
         await sendSystemNotification({
@@ -285,17 +309,25 @@ const ViewPatient = (props) => {
         });
 
         if (resultsForTest.length > 0) {
-          calls.push(patientService.addTestResults(patientId, { 
-            testId: test.testId, 
-            results: resultsForTest, 
-            reportedBy: user?._id,
+          const reportedBy = (user && (user._id || user.id)) || null;
+          const payload = {
+            testId: test.testId || null,
+            results: resultsForTest,
+            reportedBy,
             testResult: test.testResult,
             testNotes: test.notes,
             status: test.status
-          }));
+          };
+
+          // Defensive: remove undefined fields
+          Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+
+          console.debug('saveResults payload for testId', payload.testId, payload);
+          calls.push(patientService.addTestResults(patientId, payload));
         }
       });
 
+      console.debug('All pending saveResults calls count:', calls.length);
       await Promise.all(calls);
       alert('Results saved');
       try {

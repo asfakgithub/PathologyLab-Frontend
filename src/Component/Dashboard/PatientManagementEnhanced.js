@@ -53,7 +53,7 @@ const PatientManagementEnhanced = () => {
     try {
       setLoading(true);
       const response = await getPatients();
-      setPatients(response.data || []);
+      setPatients(response.data.patients || []);
     } catch (err) {
       setError('Failed to fetch patients: ' + (err.message || err));
     } finally {
@@ -78,7 +78,7 @@ const PatientManagementEnhanced = () => {
 
   const handleCreateInvoice = (patient) => { setEditingPatient(patient); setInvoiceMode(true); setOpenDialog(true); };
 
-  const filteredPatients = patients.filter(patient =>
+  const filteredPatients = patients?.filter(patient =>
     patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.mobileNo?.includes(searchTerm)

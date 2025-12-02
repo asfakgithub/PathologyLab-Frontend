@@ -186,8 +186,10 @@ export const endpoints = {
     getById: (id) => `/invoices/${id}`,
     update: (id) => `/invoices/${id}`,
     delete: (id) => `/invoices/${id}`,
-    addPayment: (id) => `/invoices/payment/${id}`,
-    paymentHistory: (id) => `/invoices/payment/${id}`,
+      // backend uses PATCH /invoices/status/:id to add payment
+      addPayment: (id) => `/invoices/status/${id}`,
+      // fetch invoice to get payment history
+      paymentHistory: (id) => `/invoices/${id}`,
     stats: '/invoices/stats',
     outstanding: '/invoices/outstanding',
     pdf: (id) => `/invoices/${id}/pdf`,
@@ -298,7 +300,7 @@ export const getInvoice = (id) => api.get(endpoints.invoices.getById(id));
 export const createInvoice = (data) => api.post(endpoints.invoices.create, data);
 export const updateInvoice = (id, data) => api.put(endpoints.invoices.update(id), data);
 export const deleteInvoice = (id) => api.delete(endpoints.invoices.delete(id));
-export const processPayment = (id, data) => api.post(endpoints.invoices.addPayment(id), data);
+export const processPayment = (id, data) => api.patch(endpoints.invoices.addPayment(id), data);
 export const getInvoicePaymentHistory = (id) => api.get(endpoints.invoices.paymentHistory(id));
 export const getInvoiceStats = () => api.get(endpoints.invoices.stats);
 export const getOutstandingInvoices = () => api.get(endpoints.invoices.outstanding);

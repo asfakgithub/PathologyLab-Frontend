@@ -51,6 +51,7 @@ export const patientService = {
     try {
       const endpoint = endpoints.patients.update(patientId);
       console.log('📡 UPDATE PATIENT REQUEST:', `[PUT]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      console.log('🔧 updatePatient payload:', updateData);
       const response = await apiClient.put(endpoint, updateData);
       return response;
     } catch (error) {
@@ -116,6 +117,7 @@ export const patientService = {
     try {
       const endpoint = `/patients/${patientId}/results`;
       console.log('📡 ADD TEST RESULTS REQUEST:', `[POST]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      console.log('🔧 addTestResults payload:', testResults);
       const response = await apiClient.post(endpoint, testResults);
       return response;
     } catch (error) {

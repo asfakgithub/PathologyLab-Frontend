@@ -79,7 +79,7 @@ const ReportManagementEnhanced = () => {
     try {
       setLoading(true);
       const patientsResponse = await patientService.getAllPatients();
-      const patients = patientsResponse.data || []; // The API returns patient list in `data`
+      const patients = patientsResponse.data?.patients || []; // The API returns patient list in `data.patients`
 
       // The component treats each patient as a "report". We need to map the patient data
       // to a structure the component can use.
@@ -267,14 +267,6 @@ const ReportManagementEnhanced = () => {
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Name</Typography>
                       <Typography variant="body1">{selectedReport.patient?.name || 'N/A'}</Typography>
-                    </Grid>
-                    <Grid item xs={3}>
-                      <Typography variant="body2" color="text.secondary">Age</Typography>
-                      <Typography variant="body1">{selectedReport.patient?.age || 'N/A'} years</Typography>
-                    </Grid>
-                    <Grid item xs={3}>
-                      <Typography variant="body2" color="text.secondary">Gender</Typography>
-                      <Typography variant="body1">{selectedReport.patient?.gender || 'N/A'}</Typography>
                     </Grid>
                   </Grid>
                 </CardContent>
