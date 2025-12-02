@@ -53,11 +53,10 @@ import {
 } from '@mui/icons-material';
 import { InfoOutlined as InfoIcon } from '@mui/icons-material';
 import { invoiceService } from '../../services/invoiceService';
-import { getTests, getUsers } from '../../services/api';
+import { getPatients, getTests, getUsers } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 import useSystemNotification from '../../core/hooks/useSystemNotification';
 import { SettingsContext } from '../../context/SettingsContext';
-import { getPatients, deletePatient } from '../../services/api';
 
 const InvoiceManagementNew = () => {
   const { sendSystemNotification } = useSystemNotification();
@@ -77,12 +76,12 @@ const InvoiceManagementNew = () => {
   const [viewDialog, setViewDialog] = useState(false);
   const [paymentDialog, setPaymentDialog] = useState(false);
   const [patients, setPatients] = useState([]);
-  
 
   // Fetch invoices on component mount
   useEffect(() => {
     fetchInvoices();
     fetchUsers();
+    fetchPatients()
   }, []);
 
   const fetchInvoices = async () => {
@@ -99,23 +98,18 @@ const InvoiceManagementNew = () => {
     }
   };
 
-  useEffect(() => { fetchPatients(); }, []);
-
   const fetchPatients = async () => {
     try {
       setLoading(true);
       const response = await getPatients();
-      console.log('Fetched patients:', response);
-      setPatients(response.data || []);
+      // Assuming the patient array is in response.data.data based on previous interactions
+      setPatients(response.data?.data || []);
     } catch (err) {
       setError('Failed to fetch patients: ' + (err.message || err));
     } finally {
       setLoading(false);
     }
   };
-
-  console.log('Patients:', patients);
-
 
   const fetchUsers = async () => {
     try {
@@ -185,13 +179,13 @@ const InvoiceManagementNew = () => {
 
   const { billingEnabled, allowEdit, allowDelete } = settings.invoice || {};
 
-  const filteredInvoices = invoices.filter(invoice =>
-    invoice.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (invoice.invoiceNumber || invoice.invoiceId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPatients = patients.filter(patient =>
+    patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (patient.billing?.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (patient.mobileNo || '').includes(searchTerm)
   );
 
-  const paginatedInvoices = filteredInvoices.slice(
+  const paginatedPatients = filteredPatients.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
@@ -270,7 +264,7 @@ const InvoiceManagementNew = () => {
             <Grid item xs={4}>
               <Card sx={{ textAlign: 'center', p: 1 }}>
                 <Typography variant="h6" color="primary">
-                  {filteredInvoices.length}
+                  {filteredPatients.length}
                 </Typography>
                 <Typography variant="body2">Total</Typography>
               </Card>
@@ -278,7 +272,7 @@ const InvoiceManagementNew = () => {
             <Grid item xs={4}>
               <Card sx={{ textAlign: 'center', p: 1 }}>
                 <Typography variant="h6" color="success.main">
-                  {filteredInvoices.filter(inv => inv.status === 'paid').length}
+                  {filteredPatients.filter(p => p.billing?.paymentStatus === 'paid').length}
                 </Typography>
                 <Typography variant="body2">Paid</Typography>
               </Card>
@@ -286,7 +280,7 @@ const InvoiceManagementNew = () => {
             <Grid item xs={4}>
               <Card sx={{ textAlign: 'center', p: 1 }}>
                 <Typography variant="h6" color="warning.main">
-                  {filteredInvoices.filter(inv => inv.status === 'pending').length}
+                  {filteredPatients.filter(p => p.billing?.paymentStatus === 'pending').length}
                 </Typography>
                 <Typography variant="body2">Pending</Typography>
               </Card>
@@ -310,15 +304,11 @@ const InvoiceManagementNew = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              
-              {patients.map((patient, index) => (
+              {paginatedPatients.map((patient) => (
                 <TableRow key={patient._id} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight="bold">
-                      {patient.invoiceNumber || patient._id}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {/* {invoice.invoiceId} */}
+                      {patient.billing?.invoiceNumber || patient._id.slice(-8)}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -341,14 +331,8 @@ const InvoiceManagementNew = () => {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight="bold">
-                      {/* ₹{invoice.totalAmount?.toFixed(2)} */}
-                      {patient.billing.totalAmount?.toFixed(2)}
+                      ₹{patient.billing?.totalAmount?.toFixed(2)}
                     </Typography>
-                    {/* {invoice.dueAmount > 0 && (
-                      <Typography variant="caption" color="error">
-                        Due: ₹{invoice.dueAmount?.toFixed(2)}
-                      </Typography>
-                    )} */}
                   </TableCell>
                   <TableCell>
                     <Chip
@@ -411,7 +395,7 @@ const InvoiceManagementNew = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={filteredInvoices.length}
+          count={filteredPatients.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(event, newPage) => setPage(newPage)}
@@ -895,31 +879,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
 
 // Invoice View Dialog Component
 const InvoiceViewDialog = ({ open, onClose, invoice }) => {
-  const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (open) {
-      fetchPatients();
-    }
-  }, [open]);
   if (!invoice) return null;
-
-   const fetchPatients = async () => {
-    try {
-      setLoading(true);
-      const response = await getPatients();
-      console.log('Fetched patients:', response);
-      setPatients(response.data || []);
-    } catch (err) {
-      setError('Failed to fetch patients: ' + (err.message || err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  console.log('Patients newwww:', patients);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -949,7 +909,7 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                 <Typography variant="h6" gutterBottom color="primary">
                   Invoice Information
                 </Typography>
-                <Typography variant="body2"><strong>Invoice ID:</strong> {patients.id}</Typography>
+                <Typography variant="body2"><strong>Invoice ID:</strong> {invoice.invoiceId}</Typography>
                 <Typography variant="body2"><strong>Invoice Number:</strong> {invoice.invoiceNumber || invoice.invoiceId}</Typography>
                 <Typography variant="body2"><strong>Date:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</Typography>
                 <Typography variant="body2"><strong>Status:</strong>
@@ -982,7 +942,7 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {patients.tests?.map((item, index) => (
+                      {invoice.items?.map((item, index) => (
                         <React.Fragment key={index}>
                           <TableRow>
                             <TableCell><strong>{item.name}</strong></TableCell>
