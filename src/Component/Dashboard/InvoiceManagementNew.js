@@ -57,6 +57,7 @@ import { getTests, getUsers } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 import useSystemNotification from '../../core/hooks/useSystemNotification';
 import { SettingsContext } from '../../context/SettingsContext';
+import { getPatients, deletePatient } from '../../services/api';
 
 const InvoiceManagementNew = () => {
   const { sendSystemNotification } = useSystemNotification();
@@ -75,6 +76,8 @@ const InvoiceManagementNew = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [viewDialog, setViewDialog] = useState(false);
   const [paymentDialog, setPaymentDialog] = useState(false);
+  const [patients, setPatients] = useState([]);
+  
 
   // Fetch invoices on component mount
   useEffect(() => {
@@ -95,6 +98,24 @@ const InvoiceManagementNew = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => { fetchPatients(); }, []);
+
+  const fetchPatients = async () => {
+    try {
+      setLoading(true);
+      const response = await getPatients();
+      console.log('Fetched patients:', response);
+      setPatients(response.data || []);
+    } catch (err) {
+      setError('Failed to fetch patients: ' + (err.message || err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  console.log('Patients:', patients);
+
 
   const fetchUsers = async () => {
     try {
@@ -201,7 +222,7 @@ const InvoiceManagementNew = () => {
               </IconButton>
             </Tooltip>
           </Box>
-          {billingEnabled &&
+          {/* {billingEnabled &&
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -210,7 +231,7 @@ const InvoiceManagementNew = () => {
             >
               Create Invoice
             </Button>
-          }
+          } */}
         </Box>
       </Box>
 
@@ -289,14 +310,15 @@ const InvoiceManagementNew = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedInvoices.map((invoice) => (
-                <TableRow key={invoice._id} hover>
+              
+              {patients.map((patient, index) => (
+                <TableRow key={patient._id} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight="bold">
-                      {invoice.invoiceNumber || invoice.invoiceId}
+                      {patient.invoiceNumber || patient._id}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {invoice.invoiceId}
+                      {/* {invoice.invoiceId} */}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -306,31 +328,32 @@ const InvoiceManagementNew = () => {
                       </Avatar>
                       <Box>
                         <Typography variant="body2" fontWeight="bold">
-                          {invoice.patientName}
+                          {patient.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {invoice.patientPhone}
+                          {patient.mobileNo}
                         </Typography>
                       </Box>
                     </Box>
                   </TableCell>
                   <TableCell>
-                    {new Date(invoice.createdAt).toLocaleDateString()}
+                    {new Date(patient.examinedDate).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight="bold">
-                      ₹{invoice.totalAmount?.toFixed(2)}
+                      {/* ₹{invoice.totalAmount?.toFixed(2)} */}
+                      {patient.billing.totalAmount?.toFixed(2)}
                     </Typography>
-                    {invoice.dueAmount > 0 && (
+                    {/* {invoice.dueAmount > 0 && (
                       <Typography variant="caption" color="error">
                         Due: ₹{invoice.dueAmount?.toFixed(2)}
                       </Typography>
-                    )}
+                    )} */}
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={invoice.status?.toUpperCase()}
-                      color={getStatusColor(invoice.status)}
+                      label={patient.status?.toUpperCase()}
+                      color={getStatusColor(patient.status)}
                       size="small"
                     />
                   </TableCell>
@@ -339,7 +362,7 @@ const InvoiceManagementNew = () => {
                       <Tooltip title="View">
                         <IconButton
                           size="small"
-                          onClick={() => handleViewInvoice(invoice)}
+                          // onClick={() => handleViewInvoice(invoice)}
                           color="primary"
                         >
                           <ViewIcon />
@@ -349,14 +372,14 @@ const InvoiceManagementNew = () => {
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
-                            onClick={() => handleEditInvoice(invoice)}
+                            // onClick={() => handleEditInvoice(invoice)}
                             color="secondary"
                           >
                             <EditIcon />
                           </IconButton>
                         </Tooltip>
                       }
-                      {invoice.status !== 'paid' && (
+                      {/* {invoice.status !== 'paid' && (
                         <Tooltip title="Payment">
                           <IconButton
                             size="small"
@@ -366,12 +389,12 @@ const InvoiceManagementNew = () => {
                             <PaymentIcon />
                           </IconButton>
                         </Tooltip>
-                      )}
+                      )} */}
                       {allowDelete &&
                         <Tooltip title="Delete">
                           <IconButton
                             size="small"
-                            onClick={() => handleDeleteInvoice(invoice.invoiceId)}
+                            // onClick={() => handleDeleteInvoice(invoice.invoiceId)}
                             color="error"
                           >
                             <DeleteIcon />
