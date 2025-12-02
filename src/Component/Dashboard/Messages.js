@@ -35,7 +35,7 @@ const Messages = () => {
       const params = { q: debouncedQ, email: filters.email, page: filters.page, doctorId: filters.doctorId, filterOption: filters.filterOption };
       const res = await api.get('/messages', { params });
       // api returns data directly via interceptor
-      const { messages: fetched = [], totalPages: tp = 1, readCount = 0, unreadCount = 0, total = 0 } = res || {};
+      const { messages: fetched = [], totalPages: tp = 1, readCount = 0, unreadCount = 0, total = 0 } = res.data || {};
       setMessages(fetched);
       setTotalPages(tp);
       setCounts({ total, read: readCount, unread: unreadCount });

@@ -48,7 +48,8 @@ export const SettingsProvider = ({ children }) => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const settingsData = await getSettings();
+        const response = await getSettings();
+        const settingsData = response.data;
         if (settingsData) {
           // Merge dashboard widgets to ensure new widgets are included
           const serverDashboardKeys = new Set((settingsData.dashboard || []).map(w => w.widgetKey));
@@ -84,7 +85,8 @@ export const SettingsProvider = ({ children }) => {
 
   const updateSettings = useCallback(async (newSettings) => {
     try {
-      const updatedData = await updateSettingsAPI(newSettings);
+      const response = await updateSettingsAPI(newSettings);
+      const updatedData = response.data;
       // After updating, re-merge with initial state to ensure data integrity
       const serverDashboardKeys = new Set((updatedData.dashboard || []).map(w => w.widgetKey));
       const clientOnlyWidgets = initialState.dashboard.filter(w => !serverDashboardKeys.has(w.widgetKey));
