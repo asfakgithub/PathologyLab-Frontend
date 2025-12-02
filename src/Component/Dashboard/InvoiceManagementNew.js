@@ -362,7 +362,7 @@ const InvoiceManagementNew = () => {
                       <Tooltip title="View">
                         <IconButton
                           size="small"
-                          // onClick={() => handleViewInvoice(invoice)}
+                          onClick={() => handleViewInvoice(patient)}
                           color="primary"
                         >
                           <ViewIcon />
@@ -895,7 +895,31 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
 
 // Invoice View Dialog Component
 const InvoiceViewDialog = ({ open, onClose, invoice }) => {
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      fetchPatients();
+    }
+  }, [open]);
   if (!invoice) return null;
+
+   const fetchPatients = async () => {
+    try {
+      setLoading(true);
+      const response = await getPatients();
+      console.log('Fetched patients:', response);
+      setPatients(response.data || []);
+    } catch (err) {
+      setError('Failed to fetch patients: ' + (err.message || err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  console.log('Patients newwww:', patients);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -925,7 +949,7 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                 <Typography variant="h6" gutterBottom color="primary">
                   Invoice Information
                 </Typography>
-                <Typography variant="body2"><strong>Invoice ID:</strong> {invoice.invoiceId}</Typography>
+                <Typography variant="body2"><strong>Invoice ID:</strong> {patients.id}</Typography>
                 <Typography variant="body2"><strong>Invoice Number:</strong> {invoice.invoiceNumber || invoice.invoiceId}</Typography>
                 <Typography variant="body2"><strong>Date:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</Typography>
                 <Typography variant="body2"><strong>Status:</strong>
@@ -958,7 +982,7 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {invoice.items?.map((item, index) => (
+                      {patients.tests?.map((item, index) => (
                         <React.Fragment key={index}>
                           <TableRow>
                             <TableCell><strong>{item.name}</strong></TableCell>
