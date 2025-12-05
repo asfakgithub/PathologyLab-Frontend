@@ -103,13 +103,14 @@ const InvoiceManagementNew = () => {
       setLoading(true);
       const response = await getPatients();
       // Assuming the patient array is in response.data.data based on previous interactions
-      setPatients(response.data?.data || []);
+      setPatients(response.data?.patients || []);
     } catch (err) {
       setError('Failed to fetch patients: ' + (err.message || err));
     } finally {
       setLoading(false);
     }
   };
+  console.log('Patients:', patients);
 
   const fetchUsers = async () => {
     try {
@@ -304,7 +305,7 @@ const InvoiceManagementNew = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedPatients.map((patient) => (
+              {patients.map((patient) => (
                 <TableRow key={patient._id} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight="bold">
