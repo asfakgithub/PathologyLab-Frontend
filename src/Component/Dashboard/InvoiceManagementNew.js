@@ -129,8 +129,9 @@ const InvoiceManagementNew = () => {
     setOpenDialog(true);
   };
 
-  const handleEditInvoice = (invoice) => {
-    setEditingInvoice(invoice);
+  const handleEditInvoice = (patientId) => {
+    const invoiceToView = patients.find(p => p._id === patientId);
+    setEditingInvoice(invoiceToView);
     setOpenDialog(true);
   };
 
@@ -358,7 +359,7 @@ const InvoiceManagementNew = () => {
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
-                            // onClick={() => handleEditInvoice(invoice)}
+                            onClick={() => handleEditInvoice(patient._id)}
                             color="secondary"
                           >
                             <EditIcon />
@@ -984,7 +985,7 @@ const InvoiceViewDialog = ({ open, onClose, patient }) => {
                 {patient.specialInstructions && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="body2" color="text.secondary">
-                      {/* <strong>Notes:</strong> {invoice.notes} */}
+                      <strong>Notes:</strong> {patient.notes}
                     </Typography>
                   </Box>
                 )}
