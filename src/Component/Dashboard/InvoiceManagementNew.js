@@ -165,8 +165,9 @@ const InvoiceManagementNew = () => {
     }
   };
 
-  const handlePayment = (invoice) => {
-    setSelectedInvoice(invoice);
+  const handlePayment = (patientId) => {
+    const patientPaymentView = patients.find(p => p._id === patientId);
+    setSelectedInvoice(patientPaymentView);
     setPaymentDialog(true);
   };
 
@@ -370,7 +371,7 @@ const InvoiceManagementNew = () => {
                         <Tooltip title="Payment">
                           <IconButton
                             size="small"
-                            // onClick={() => handlePayment(invoice)}
+                            onClick={() => handlePayment(patient._id)}
                             color="success"
                           >
                             <PaymentIcon />
