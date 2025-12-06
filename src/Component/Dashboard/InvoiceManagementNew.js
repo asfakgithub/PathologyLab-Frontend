@@ -366,17 +366,17 @@ const InvoiceManagementNew = () => {
                           </IconButton>
                         </Tooltip>
                       }
-                      {/* {invoice.status !== 'paid' && (
+                      {patient.status !== 'paid' && (
                         <Tooltip title="Payment">
                           <IconButton
                             size="small"
-                            onClick={() => handlePayment(invoice)}
+                            // onClick={() => handlePayment(invoice)}
                             color="success"
                           >
                             <PaymentIcon />
                           </IconButton>
                         </Tooltip>
-                      )} */}
+                      )}
                       {allowDelete &&
                         <Tooltip title="Delete">
                           <IconButton
