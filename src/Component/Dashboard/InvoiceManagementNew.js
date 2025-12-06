@@ -134,8 +134,9 @@ const InvoiceManagementNew = () => {
     setOpenDialog(true);
   };
 
-  const handleViewInvoice = (invoice) => {
-    setSelectedInvoice(invoice);
+  const handleViewInvoice = (patientId) => {
+    const patientToView = patients.find(p => p._id === patientId);
+    setSelectedInvoice(patientToView);
     setViewDialog(true);
   };
 
@@ -347,7 +348,7 @@ const InvoiceManagementNew = () => {
                       <Tooltip title="View">
                         <IconButton
                           size="small"
-                          onClick={() => handleViewInvoice(patient)}
+                          onClick={() => handleViewInvoice(patient._id)}
                           color="primary"
                         >
                           <ViewIcon />
@@ -426,7 +427,7 @@ const InvoiceManagementNew = () => {
       <InvoiceViewDialog
         open={viewDialog}
         onClose={() => setViewDialog(false)}
-        invoice={selectedInvoice}
+        patient={selectedInvoice}
       />
 
       {/* Payment Dialog */}
@@ -879,50 +880,48 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
 };
 
 // Invoice View Dialog Component
-const InvoiceViewDialog = ({ open, onClose, invoice }) => {
-  if (!invoice) return null;
+const InvoiceViewDialog = ({ open, onClose, patient }) => {
+  if (!patient) return null;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        Invoice Details - {invoice.invoiceNumber || invoice.invoiceId}
+        Invoice Details - {patient.billing?.invoiceNumber || patient._id.slice(-8)}
       </DialogTitle>
       <DialogContent>
         <Grid container spacing={3}>
-          {/* <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6}>
             <Card>
-              <CardContent>
+              {/* <CardContent>
                 <Typography variant="h6" gutterBottom color="primary">
                   Patient Information
                 </Typography>
-                <Typography variant="body2"><strong>Name:</strong> {invoice.patientName}</Typography>
-                <Typography variant="body2"><strong>Age:</strong> {invoice.patientAge}</Typography>
-                <Typography variant="body2"><strong>Gender:</strong> {invoice.patientGender}</Typography>
-                <Typography variant="body2"><strong>Phone:</strong> {invoice.patientPhone}</Typography>
-                <Typography variant="body2"><strong>Email:</strong> {invoice.patientEmail}</Typography>
-                <Typography variant="body2"><strong>Address:</strong> {invoice.patientAddress}</Typography>
-              </CardContent>
+                <Typography variant="body2"><strong>Name:</strong> {patient.name}</Typography>
+                <Typography variant="body2"><strong>Age:</strong> {patient.age}</Typography>
+                <Typography variant="body2"><strong>Gender:</strong> {patient.gender}</Typography>
+                <Typography variant="body2"><strong>Phone:</strong> {patient.mobileNo}</Typography>
+                <Typography variant="body2"><strong>Email:</strong> {patient.email}</Typography>
+                <Typography variant="body2"><strong>Address:</strong> {[patient.address?.street, patient.address?.city, patient.address?.state].filter(Boolean).join(', ')}</Typography>
+              </CardContent> */}
             </Card>
-          </Grid> */}
+          </Grid>
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom color="primary">
                   Invoice Information
                 </Typography>
-                <Typography variant="body2"><strong>Invoice ID:</strong> {invoice.invoiceId}</Typography>
-                <Typography variant="body2"><strong>Invoice Number:</strong> {invoice.invoiceNumber || invoice.invoiceId}</Typography>
-                <Typography variant="body2"><strong>Date:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</Typography>
+                <Typography variant="body2"><strong>Invoice ID:</strong> {patient.billing?.invoiceId || patient._id}</Typography>
+                <Typography variant="body2"><strong>Invoice Number:</strong> {patient.billing?.invoiceNumber || patient._id.slice(-8)}</Typography>
+                <Typography variant="body2"><strong>Date:</strong> {new Date(patient.createdAt).toLocaleDateString()}</Typography>
                 <Typography variant="body2"><strong>Status:</strong>
                   <Chip
-                    label={invoice.status?.toUpperCase()}
-                    color={invoice.status === 'paid' ? 'success' : 'warning'}
+                    label={patient.billing?.paymentStatus?.toUpperCase()}
+                    color={patient.billing?.paymentStatus === 'paid' ? 'success' : 'warning'}
                     size="small"
                     sx={{ ml: 1 }}
                   />
                 </Typography>
-                {/* <Typography variant="body2"><strong>Doctor:</strong> {invoice.doctorName}</Typography> */}
-                {/* <Typography variant="body2"><strong>Referred By:</strong> {invoice.referredBy}</Typography> */}
               </CardContent>
             </Card>
           </Grid>
@@ -943,10 +942,10 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {invoice.items?.map((item, index) => (
+                      {patient.tests?.map((item, index) => (
                         <React.Fragment key={index}>
                           <TableRow>
-                            <TableCell><strong>{item.name}</strong></TableCell>
+                            <TableCell><strong>{item.testName}</strong></TableCell>
                             <TableCell align="right"><strong>₹{item.price?.toFixed(2)}</strong></TableCell>
                           </TableRow>
                         </React.Fragment>
@@ -965,27 +964,27 @@ const InvoiceViewDialog = ({ open, onClose, invoice }) => {
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                    <Typography variant="body2">Subtotal: ₹{invoice.subtotalAmount?.toFixed(2)}</Typography>
-                    <Typography variant="body2">Discount: -₹{invoice.discountAmount?.toFixed(2)}</Typography>
-                    <Typography variant="body2">GST ({invoice.gstPercentage}%): ₹{invoice.gstAmount?.toFixed(2)}</Typography>
-                    <Typography variant="body2">Additional Charges: ₹{invoice.additionalCharges?.toFixed(2)}</Typography>
+                    <Typography variant="body2">Subtotal: ₹{patient.billing?.totalAmount?.toFixed(2)}</Typography>
+                    <Typography variant="body2">Discount: -₹{patient.billing?.discountAmount?.toFixed(2) || '0.00'}</Typography>
+                    <Typography variant="body2">GST ({patient.billing?.gstPercentage || 18}%): ₹{patient.billing?.gstAmount?.toFixed(2) || '0.00'}</Typography>
+                    <Typography variant="body2">Additional Charges: ₹{patient.billing?.additionalCharges?.toFixed(2) || '0.00'}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6} sx={{ textAlign: 'right' }}>
                     <Typography variant="h6" color="primary">
-                      Total Amount: ₹{invoice.totalAmount?.toFixed(2)}
+                      Total Amount: ₹{patient.billing?.totalAmount?.toFixed(2)}
                     </Typography>
                     <Typography variant="body2" color="success.main">
-                      Amount Paid: ₹{invoice.amountPaid?.toFixed(2)}
+                      Amount Paid: ₹{patient.billing?.paidAmount?.toFixed(2)}
                     </Typography>
                     <Typography variant="body2" color="error.main">
-                      Due Amount: ₹{invoice.dueAmount?.toFixed(2)}
+                      Due Amount: ₹{patient.billing?.pendingAmount?.toFixed(2)}
                     </Typography>
                   </Grid>
                 </Grid>
-                {invoice.notes && (
+                {patient.specialInstructions && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="body2" color="text.secondary">
-                      <strong>Notes:</strong> {invoice.notes}
+                      {/* <strong>Notes:</strong> {invoice.notes} */}
                     </Typography>
                   </Box>
                 )}
