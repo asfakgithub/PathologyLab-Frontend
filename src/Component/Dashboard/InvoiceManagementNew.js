@@ -469,7 +469,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
 
     // Invoice Information
     invoiceNumber: '',
-    testDetails: [],
+    tests: [],
     discountPercentage: settings?.discountPercent || 0,
     gstPercentage: settings?.defaultGST || 18,
     additionalCharges: settings?.additionalCharges || 0,
@@ -488,7 +488,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
       doctorName: '',
       referredBy: '',
       invoiceNumber: '',
-      testDetails: [],
+      tests: [],
       discountPercentage: settings?.discountPercent || 0,
       gstPercentage: settings?.defaultGST || 18,
       additionalCharges: settings?.additionalCharges || 0,
@@ -586,19 +586,19 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
 
     setFormData(prev => ({
       ...prev,
-      testDetails: [...prev.testDetails, newTest]
+      tests: [...prev.tests, newTest]
     }));
   };
 
   const handleTestRemove = (index) => {
     setFormData(prev => ({
       ...prev,
-      testDetails: prev.testDetails.filter((_, i) => i !== index)
+      tests: prev.tests.filter((_, i) => i !== index)
     }));
   };
 
   const calculateTotals = () => {
-    const testDetailsArray = formData.testDetails || [];
+    const testDetailsArray = formData.tests || [];
     const subtotal = testDetailsArray.reduce((sum, test) => sum + (test.testPrice || 0), 0);
     const discountAmount = (subtotal * (formData.discountPercentage || 0)) / 100;
     const taxableAmount = subtotal - discountAmount;
@@ -741,7 +741,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
                     Selected Tests
                   </Typography>
                   <List>
-                    {(formData.testDetails || []).map((test, index) => (
+                    {(formData.tests || []).map((test, index) => (
                       <ListItem key={index} divider>
                         <ListItemText
                           primary={`${test.testName} (${test.testCode})`}
@@ -821,7 +821,7 @@ const InvoiceFormDialog = ({ open, onClose, invoice, onSuccess, onError, selecte
                         Patient: {formData.patientName}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Tests: {(formData.testDetails || []).length} items
+                        Tests: {(formData.tests || []).length} items
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
