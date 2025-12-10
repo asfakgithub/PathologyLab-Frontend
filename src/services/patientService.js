@@ -78,7 +78,8 @@ export const patientService = {
     try {
       const endpoint = endpoints.patients.search;
       console.log('📡 SEARCH PATIENTS REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
-      const response = await apiClient.get(endpoint, { params: { q: searchQuery } });
+      // backend expects `query` param; support both `query` and `q` for compatibility
+      const response = await apiClient.get(endpoint, { params: { query: searchQuery, q: searchQuery } });
       return response;
     } catch (error) {
       console.error('❌ SEARCH PATIENTS ERROR:', error);

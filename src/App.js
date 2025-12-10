@@ -22,10 +22,10 @@ import Messages from './Component/Dashboard/Messages';
 // Report Components
 import ReportForm from './Component/Pages/ReportPage/ReportForm';
 import Report from './Component/Pages/ReportPage/report';
-import ViewPatient from './Component/Dashboard/ViewPatient';
 
 import PateintReport from './Component/Dashboard/PateintReport';
 import ErrorBoundary from './Component/common/ErrorBoundary';
+import ReportGenarator from './Component/Dashboard/ReportGenarator.js';
 
 // MUI Theme Creator Component
 const MuiThemeCreator = ({ children }) => {
@@ -351,7 +351,7 @@ function AppContent() {
               element={
                 <ProtectedRoute allowedRoles={["master", "admin", "doctor", "technician", "receptionist"]}>
                   <React.Suspense fallback={<LoadingSpinner />}>
-                    <ViewPatient />
+                    <ReportGenarator />
                   </React.Suspense>
                 </ProtectedRoute>
               } 

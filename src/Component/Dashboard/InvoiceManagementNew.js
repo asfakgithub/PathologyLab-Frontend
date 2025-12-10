@@ -5,10 +5,6 @@ import {
   Typography,
   Button,
   TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Table,
   TableBody,
   TableCell,
@@ -22,20 +18,7 @@ import {
   InputAdornment,
   Grid,
   Card,
-  CardContent,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
   Autocomplete,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
   Tooltip,
   Avatar
 } from '@mui/material';
@@ -45,11 +28,8 @@ import {
   Visibility as ViewIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Download as DownloadIcon,
-  Print as PrintIcon,
   Payment as PaymentIcon,
   Person as PersonIcon,
-  Save as SaveIcon
 } from '@mui/icons-material';
 import { InfoOutlined as InfoIcon } from '@mui/icons-material';
 import { getUsers } from '../../services/api';

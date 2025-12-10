@@ -21,41 +21,8 @@ function Report() {
   
   // Report data state
   const [reportResults, setReportResults] = useState([]);
-  
-  const fetchPatientData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await getPatient(id);
-      console.log('Patient data response:', response);
-      
-      if (response && response.data) {
-        const patientData = response.data;
-        setPatient(patientData);
-        
-        // Initialize report results based on patient's tests
-        if (patientData.tests && patientData.tests.length > 0) {
-          initializeReportResults(patientData.tests, patientData);
-        }
-      } else {
-        setError('Patient not found');
-      }
-    } catch (err) {
-      console.error('Error fetching patient:', err);
-      setError('Failed to load patient data');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
 
-  useEffect(() => {
-    if (id) {
-      fetchPatientData();
-    }
-  }, [id, fetchPatientData]);
-
-  const initializeReportResults = (tests) => {
+  const initializeReportResults = useCallback((tests) => {
     const initialResults = [];
     
     tests.forEach((test, testIndex) => {
@@ -91,7 +58,40 @@ function Report() {
     });
     
     setReportResults(initialResults);
-  };
+  }, [patient]);
+  
+  const fetchPatientData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await getPatient(id);
+      console.log('Patient data response:', response);
+      
+      if (response && response.data) {
+        const patientData = response.data;
+        setPatient(patientData);
+        
+        // Initialize report results based on patient's tests
+        if (patientData.tests && patientData.tests.length > 0) {
+          initializeReportResults(patientData.tests, patientData);
+        }
+      } else {
+        setError('Patient not found');
+      }
+    } catch (err) {
+      console.error('Error fetching patient:', err);
+      setError('Failed to load patient data');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, initializeReportResults]);
+
+  useEffect(() => {
+    if (id) {
+      fetchPatientData();
+    }
+  }, [id, fetchPatientData]);
 
   const handleResultChange = (id, field, value) => {
     setReportResults(prev => 

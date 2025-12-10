@@ -44,14 +44,18 @@ api.interceptors.response.use(
       // Server responded with error status
       const { status, data } = error.response;
 
-      // Attempt token refresh on 401 once
-      if (status === 401 && !originalRequest._retry) {
+      // Attempt token refresh on 401 once — avoid recursion by not trying to
+      // refresh when the failing request itself was the refresh endpoint.
+      if (status === 401 && !originalRequest._retry && !(originalRequest && originalRequest.url && originalRequest.url.includes(endpoints.auth.refreshToken))) {
         originalRequest._retry = true;
-        return api.post(endpoints.auth.refreshToken, {}, { withCredentials: true })
+        // Use plain axios to call refresh so we don't re-enter this interceptor
+        return axios.post(`${API_BASE_URL}${endpoints.auth.refreshToken}`, {}, { withCredentials: true })
           .then(res => {
-            const newToken = res?.data?.token || res?.token || res?.data?.accessToken || null;
+            // axios returns full response; try to find token in common places
+            const newToken = res?.data?.token || res?.data?.accessToken || null;
             if (newToken) {
               localStorage.setItem('authToken', newToken);
+              originalRequest.headers = originalRequest.headers || {};
               originalRequest.headers.Authorization = `Bearer ${newToken}`;
               return api(originalRequest);
             }
@@ -62,6 +66,7 @@ api.interceptors.response.use(
             if (!window.location.pathname.includes('/login')) {
               window.location.href = '/login';
             }
+            return Promise.reject(res);
           })
           .catch(err => {
             localStorage.removeItem('authToken');
@@ -275,6 +280,9 @@ export const getTestsByCategory = (category) => api.get(endpoints.tests.category
 export const getTestsByPriceRange = (min, max) => api.get(endpoints.tests.priceRange(min, max));
 export const getPopularTests = () => api.get(endpoints.tests.popular);
 export const exportTests = () => api.get(endpoints.tests.export);
+// Subtest endpoints (create/update within a test)
+export const addTestSubtest = (testId, data) => api.post(endpoints.tests.addSubtest(testId), data);
+export const updateTestSubtest = (testId, subtestId, data) => api.put(endpoints.tests.updateSubtest(testId, subtestId), data);
 
 // Report endpoints
 export const getReports = (params) => api.get(endpoints.reports.list, { params });

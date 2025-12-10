@@ -36,6 +36,7 @@
   "devDependencies": {
     "@babel/core": "^7.28.0",
     "babel-loader": "^10.0.0",
+    "baseline-browser-mapping": "^2.9.2",
     "eslint-config-react-app": "^7.0.1",
     "webpack": "^5.100.1",
     "webpack-cli": "^6.0.1",

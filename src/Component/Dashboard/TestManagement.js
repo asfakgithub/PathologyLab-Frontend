@@ -7,22 +7,13 @@ import {
   Card,
   CardContent,
   CardActions,
-  IconButton,
-  Dialog,
-  DialogActions,
   TextField,
   Snackbar,
   Alert,
   Grid,
-  Checkbox,
   FormControlLabel,
-  Divider,
   Chip,
   InputAdornment,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Tooltip,
   Switch
 } from '@mui/material';
@@ -43,7 +34,7 @@ function TestManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
-  const [formLoading, setFormLoading] = useState(false);
+
   const [isTableView, setIsTableView] = useState(false);
  // const [isTableView, setIsTableView] = useState(false);
   
@@ -68,7 +59,6 @@ function TestManagement() {
   const [parameterForm, setParameterForm] = useState({
     name: '',
     unit: '',
-    referenceRange: '',
     method: '',
     fastingRequired: false,
     instructions: '',
@@ -197,7 +187,6 @@ function TestManagement() {
     setParameterForm({
       name: '',
       unit: '',
-      referenceRange: '',
       method: '',
       fastingRequired: false,
       instructions: '',
@@ -239,78 +228,6 @@ function TestManagement() {
   };
 
   // Handle form changes
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm(prevForm => ({ ...prevForm, [name]: type === 'checkbox' ? checked : value }));
-  };
-
-  const handleRangeChange = (field, subfield, value) => {
-    setForm(prevForm => ({ ...prevForm, [field]: { ...prevForm[field], [subfield]: value } }));
-  };
-
-  const handleParameterChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setParameterForm({ ...parameterForm, [name]: type === 'checkbox' ? checked : value });
-  };
-
-  const handleParameterRangeChange = (field, subfield, value) => {
-    setParameterForm({ ...parameterForm, [field]: { ...parameterForm[field], [subfield]: value } });
-  };
-
-  const handleExistingParameterChange = (index, field, value) => {
-    setForm(prevForm => {
-      const updatedParameters = [...prevForm.parameters];
-      updatedParameters[index] = { ...updatedParameters[index], [field]: value };
-      return { ...prevForm, parameters: updatedParameters };
-    });
-  };
-
-  const handleExistingParameterRangeChange = (index, subfield, value) => {
-    const updatedParameters = [...form.parameters];
-    updatedParameters[index].referenceRange = { ...updatedParameters[index].referenceRange, [subfield]: value };
-    setForm({ ...form, parameters: updatedParameters });
-  };
-  // Add parameter to test
-  const addParameter = () => {
-    if (!parameterForm.name.trim()) {
-      setError('Parameter name is required');
-      return;
-    }
-    
-    const newParameter = {
-      ...parameterForm,
-      _id: Date.now().toString() // Temporary ID for frontend
-    };
-    
-    console.log('Adding parameter:', newParameter);
-    console.log('Current form parameters before adding:', form.parameters);
-    
-    setForm(prevForm => {
-      const updatedForm = { ...prevForm, parameters: [...prevForm.parameters, newParameter] };
-      console.log('Updated form parameters after adding:', updatedForm.parameters);
-      return updatedForm;
-    });
-    
-    setParameterForm({
-      name: '',
-      unit: '',
-      referenceRange: '',
-      method: '',
-      fastingRequired: false,
-      instructions: '',
-      referenceRange: { male: '', female: '', child: '', infant: '' },
-      price: ''
-    });
-    setError(null);
-  };
-
-  // Remove parameter
-  const removeParameter = (index) => {
-    setForm(prevForm => ({ 
-      ...prevForm, 
-      parameters: prevForm.parameters.filter((_, i) => i !== index) 
-    }));
-  };
 
   // Validate form
   const validateForm = () => {
@@ -335,61 +252,6 @@ function TestManagement() {
       return false;
     }
     return true;
-  };
-
-  // Handle save
-  const handleSave = async () => {
-    if (!validateForm()) return;
-
-    try {
-      setFormLoading(true);
-      setError(null);
-
-      console.log('Form state before creating testData:', {
-        parametersCount: form.parameters.length,
-        parameters: form.parameters
-      });
-
-      const testData = {
-        ...form,
-        duration: form.duration ? parseInt(form.duration) : undefined,
-        price: parseFloat(form.price),
-        parameters: form.parameters.map(param => {
-          // For new tests, remove temporary _id; for existing tests, keep ObjectId _id
-          const paramData = { ...param, price: param.price ? parseFloat(param.price) : 0 };
-          
-          // If creating a new test or if _id is a temporary string ID, remove it
-          if (!editingTest || (typeof param._id === 'string' && param._id.length < 24)) {
-            const { _id, ...paramWithoutId } = paramData;
-            return paramWithoutId;
-          }
-          
-          return paramData;
-        })
-      };
-
-      console.log('Test data being sent to API:', JSON.stringify(testData, null, 2));
-
-      if (editingTest) {
-        await updateTest(editingTest._id, testData);
-        showSnackbar('Test updated successfully!', 'success');
-      } else {
-        await createTest(testData);
-        showSnackbar('Test created successfully!', 'success');
-      }
-
-      // Refresh the tests list
-      await fetchTests();
-      handleCloseDialog();
-
-    } catch (err) {
-      console.error('Error saving test:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to save test';
-      setError(errorMessage);
-      showSnackbar(errorMessage, 'error');
-    } finally {
-      setFormLoading(false);
-    }
   };
 
   // Handle delete

@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { SettingsContext } from '../../context/SettingsContext';
-import api, { getPatientStats, getReportStats, getInvoiceStats, getPatients, getReports, getPatient } from '../../services/api';
+import api, { getPatientStats, getReportStats, getInvoiceStats, getPatients, getReports } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const StatCard = ({ title, value, icon, colorVar = 'var(--color-primary)', rgbVar = '--color-primary-rgb', change, changeText }) => (

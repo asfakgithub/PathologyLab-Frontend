@@ -84,10 +84,6 @@ const TestEditor = ({ open, onClose, editingTest, onSaved, testCategories = [], 
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
-  const handleRangeChange = (field, subfield, value) => {
-    setForm(prev => ({ ...prev, [field]: { ...prev[field], [subfield]: value } }));
-  };
-
   const handleRefRangeChange = (gender, bound, value) => {
     setForm(prev => ({
       ...prev,
@@ -113,10 +109,6 @@ const TestEditor = ({ open, onClose, editingTest, onSaved, testCategories = [], 
     }));
   };
 
-  const handleParameterRangeChange = (field, subfield, value) => {
-    setParameterForm(prev => ({ ...prev, [field]: { ...prev[field], [subfield]: value } }));
-  };
-
   const addParameter = () => {
     if (!parameterForm.name.trim()) {
       setError('Parameter name is required');
@@ -136,15 +128,6 @@ const TestEditor = ({ open, onClose, editingTest, onSaved, testCategories = [], 
     setForm(prev => {
       const updated = [...prev.parameters];
       updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, parameters: updated };
-    });
-  };
-
-  const handleExistingParameterRangeChange = (index, subfield, value) => {
-    setForm(prev => {
-      const updated = [...prev.parameters];
-      // keep backward-compatible single-field updates if needed (not used)
-      updated[index].referenceRange = { ...updated[index].referenceRange, [subfield]: value };
       return { ...prev, parameters: updated };
     });
   };

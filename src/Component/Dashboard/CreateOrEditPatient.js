@@ -45,6 +45,7 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [createInvoice, setCreateInvoice] = useState(true);
+  const [singleForm, setSingleForm] = useState(false);
 
   // State for the new test search autocomplete
   const [testSearchInput, setTestSearchInput] = useState('');
@@ -75,7 +76,16 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
       debounce(async (request, callback) => {
         try {
           const response = await searchTests(request.input);
-          const testsData = response.data || [];
+          // Normalize response shapes: API helpers may return the array directly
+          // or an object with `.data`, `.tests` or other wrappers. Ensure we
+          // always pass an array to the autocomplete callback.
+          let raw = response;
+          if (raw && raw.data) raw = raw.data;
+          if (!raw) {
+            callback([]);
+            return;
+          }
+          const testsData = Array.isArray(raw) ? raw : (Array.isArray(raw.tests) ? raw.tests : (Array.isArray(raw.items) ? raw.items : []));
           callback(testsData);
         } catch (error) {
           console.error('Failed to search tests:', error);
@@ -160,6 +170,7 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
                 // Normalize selected subtests saved on patient (may use subtestId)
                 const selSubtests = (t.selectedSubtests || []).map(st => ({
                   _id: st.subtestId || st._id || st.id,
+                  id: st.subtestId || st._id || st.id,
                   name: st.subtestName || st.name,
                   price: st.price || 0
                 }));
@@ -169,11 +180,21 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
                   ? testDetail
                   : { _id: t.testId, name: t.testName || '', code: t.testCode || '', price: t.price || 0, parameters: [] };
 
-                // Attach selectedSubtests and keep original _id shape
-                return { ...testObj, _id: testObj._id || t.testId, selectedSubtests: selSubtests };
+                // Normalize parameters array to always have _id and id fields
+                const rawParams = testObj.parameters || testObj.subtests || testObj.params || [];
+                const normalizedParams = (Array.isArray(rawParams) ? rawParams : []).map(p => ({
+                  ...p,
+                  _id: p._id || p.id || p.subtestId,
+                  id: p._id || p.id || p.subtestId,
+                  name: p.name || p.parameterName || p.subtestName || '' ,
+                  price: p.price || p.amount || 0
+                }));
+
+                // Attach selectedSubtests and normalized parameters
+                return { ...testObj, _id: testObj._id || t.testId, parameters: normalizedParams, selectedSubtests: selSubtests };
               } catch (err) {
                 // Fallback to minimal info if fetch fails
-                const selSubtests = (t.selectedSubtests || []).map(st => ({ _id: st.subtestId || st._id || st.id, name: st.subtestName || st.name, price: st.price || 0 }));
+                const selSubtests = (t.selectedSubtests || []).map(st => ({ _id: st.subtestId || st._id || st.id, id: st.subtestId || st._id || st.id, name: st.subtestName || st.name, price: st.price || 0 }));
                 return { _id: t.testId, name: t.testName || '', code: t.testCode || '', price: t.price || 0, parameters: [], selectedSubtests: selSubtests };
               }
             }));
@@ -248,25 +269,38 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
     const { test, subtest, isTest } = option;
 
     setFormData(prev => {
-        let updatedSelectedTests = [...prev.selectedTests];
-        let testInSelection = updatedSelectedTests.find(t => t._id === test._id);
+      let updatedSelectedTests = [...prev.selectedTests];
+      let testInSelection = updatedSelectedTests.find(t => String(t._id) === String(test._id || test.id));
 
-        // If the parent test is not already selected, add it.
-        if (!testInSelection) {
-            testInSelection = { ...test, selectedSubtests: [] };
-            updatedSelectedTests.push(testInSelection);
-        }
+      // Normalize parameters on the test object so UI can render subtests
+      const rawParams = test.parameters || test.subtests || test.params || [];
+      const normalizedParams = (Array.isArray(rawParams) ? rawParams : []).map(p => ({
+        ...p,
+        _id: p._id || p.id || p.subtestId,
+        id: p._id || p.id || p.subtestId,
+        name: p.name || p.parameterName || p.subtestName || '',
+        price: p.price || p.amount || 0
+      }));
 
-        // If a subtest was selected, ensure it's added to the parent test's subtest list.
-        if (!isTest && subtest) {
-            const subtestInSelection = testInSelection.selectedSubtests.some(st => st._id === subtest._id);
-            if (!subtestInSelection) {
-                testInSelection.selectedSubtests.push(subtest);
-            }
+      const baseTestObj = { ...test, parameters: normalizedParams, _id: test._id || test.id };
+
+      // If the parent test is not already selected, add it.
+      if (!testInSelection) {
+        testInSelection = { ...baseTestObj, selectedSubtests: baseTestObj.selectedSubtests || [] };
+        updatedSelectedTests.push(testInSelection);
+      }
+
+      // If a subtest was selected, ensure it's added to the parent test's subtest list.
+      if (!isTest && subtest) {
+        const subId = subtest._id || subtest.id || subtest.subtestId;
+        const subtestInSelection = (testInSelection.selectedSubtests || []).some(st => String(st._id || st.id) === String(subId));
+        if (!subtestInSelection) {
+          testInSelection.selectedSubtests.push({ ...subtest, _id: subId, id: subId });
         }
+      }
         
-        // Return updated state
-        return { ...prev, selectedTests: updatedSelectedTests };
+      // Return updated state
+      return { ...prev, selectedTests: updatedSelectedTests };
     });
 
     // Clear the search input after selection
@@ -419,16 +453,182 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         {invoiceMode ? 'Create Invoice for Patient' : patient ? 'Edit Patient' : 'Add New Patient'}
-        {(!patient || invoiceMode) && (
+        <span style={{ float: 'right', display: 'flex', gap: 8 }}>
+          {(!patient || invoiceMode) && (
+            <FormControlLabel
+              control={<Switch checked={createInvoice} onChange={(e) => setCreateInvoice(e.target.checked)} color="primary" />}
+              label="Create Invoice"
+              sx={{ ml: 2 }}
+            />
+          )}
           <FormControlLabel
-            control={<Switch checked={createInvoice} onChange={(e) => setCreateInvoice(e.target.checked)} color="primary" />}
-            label="Create Invoice"
+            control={<Switch checked={singleForm} onChange={(e) => setSingleForm(e.target.checked)} color="secondary" />}
+            label={singleForm ? 'Single Form' : 'Multi Step'}
             sx={{ ml: 2 }}
           />
-        )}
+        </span>
       </DialogTitle>
       <DialogContent>
-        <Stepper activeStep={activeStep} orientation="vertical">
+        {singleForm ? (
+          // Render all steps inline for single form mode
+          <div>
+            {/* Patient Details */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h6">Patient Details</Typography>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth label="Full Name" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} required disabled={invoiceMode} />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField fullWidth label="Age" type="number" value={formData.age} onChange={(e) => handleInputChange('age', e.target.value)} required disabled={invoiceMode} />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <FormControl fullWidth>
+                    <InputLabel>Gender</InputLabel>
+                    <Select value={formData.gender} onChange={(e) => handleInputChange('gender', e.target.value)} label="Gender" disabled={invoiceMode}>
+                      <MenuItem value="Male">Male</MenuItem>
+                      <MenuItem value="Female">Female</MenuItem>
+                      <MenuItem value="Other">Other</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth label="Mobile Number" value={formData.mobileNo} onChange={(e) => handleInputChange('mobileNo', e.target.value)} required disabled={invoiceMode} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth label="Email Address" type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} disabled={invoiceMode} />
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Address */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h6">Address</Typography>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Street/Vill" value={formData.address.street} onChange={(e) => handleAddressChange('street', e.target.value)} required disabled={invoiceMode} /></Grid>
+                <Grid item xs={12} sm={3}><TextField fullWidth label="City" value={formData.address.city} onChange={(e) => handleAddressChange('city', e.target.value)} required disabled={invoiceMode} /></Grid>
+                <Grid item xs={12} sm={3}><FormControl fullWidth><InputLabel>State</InputLabel><Select value={formData.address.state} onChange={(e) => handleAddressChange('state', e.target.value)} label="State" disabled={invoiceMode}><MenuItem value="W.B">W.B</MenuItem><MenuItem value="T.S">T.S</MenuItem><MenuItem value="Other">Other</MenuItem></Select></FormControl></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Zip Code" value={formData.address.zipCode} onChange={(e) => handleAddressChange('zipCode', e.target.value)} required disabled={invoiceMode} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Country" value={formData.address.country} onChange={(e) => handleAddressChange('country', e.target.value)} disabled={invoiceMode} /></Grid>
+              </Grid>
+            </Box>
+
+            {/* Medical */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h6">Medical Information</Typography>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} sm={6}><FormControl fullWidth><InputLabel>Blood Group</InputLabel><Select value={formData.bloodGroup} onChange={(e) => handleInputChange('bloodGroup', e.target.value)} label="Blood Group"><MenuItem value="A+">A+</MenuItem><MenuItem value="A-">A-</MenuItem><MenuItem value="B+">B+</MenuItem><MenuItem value="B-">B-</MenuItem><MenuItem value="AB+">AB+</MenuItem><MenuItem value="AB-">AB-</MenuItem><MenuItem value="O+">O+</MenuItem><MenuItem value="O-">O-</MenuItem></Select></FormControl></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Known Allergies" value={formData.allergies} onChange={(e) => handleInputChange('allergies', e.target.value)} placeholder="Enter any known allergies" /></Grid>
+                <Grid item xs={12}><TextField fullWidth label="Medical History" multiline rows={3} value={formData.medicalHistory} onChange={(e) => handleInputChange('medicalHistory', e.target.value)} placeholder="Enter relevant medical history" /></Grid>
+              </Grid>
+            </Box>
+
+            {/* Tests */}
+            {createInvoice && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="h6">Test Selection</Typography>
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                  <Grid item xs={12} sm={6}><TextField fullWidth label="Doctor Name" value={formData.doctorName} onChange={(e) => handleInputChange('doctorName', e.target.value)} /></Grid>
+                  <Grid item xs={12} sm={6}><TextField fullWidth label="Referred By" value={formData.referredBy} onChange={(e) => handleInputChange('referredBy', e.target.value)} /></Grid>
+                  <Grid item xs={12}>
+                    <Autocomplete
+                      id="test-search-autocomplete-inline"
+                      options={testOptions}
+                      getOptionLabel={(option) => option.label || ''}
+                      filterOptions={(x) => x}
+                      autoComplete
+                      includeInputInList
+                      filterSelectedOptions
+                      value={null}
+                      onChange={(event, newValue) => {
+                        handleTestSelection(newValue);
+                      }}
+                      onInputChange={(event, newInputValue) => {
+                        setTestSearchInput(newInputValue);
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Search and Add Tests"
+                          fullWidth
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <React.Fragment>
+                                {testSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                {params.InputProps.endAdornment}
+                              </React.Fragment>
+                            ),
+                          }}
+                        />
+                      )}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+            {/* Selected tests & pricing for single form */}
+            {createInvoice && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="h6" gutterBottom>Selected Tests</Typography>
+                <List>
+                  {formData.selectedTests.map((test) => {
+                    const subtests = test.parameters || test.subtests || [];
+                    return (
+                      <ListItem key={test._id || test.id} divider alignItems="flex-start">
+                        <ListItemText
+                          primary={`${test.name} (${test.code || ''})`}
+                          secondary={
+                            <>
+                              <div>{`Category: ${test.category || 'General'} | Price: ₹${test.price || 0}`}</div>
+                              {subtests && subtests.length > 0 && (
+                                <Box sx={{ mt: 1 }}>
+                                  <Typography variant="subtitle2" component="div">Subtests</Typography>
+                                  <FormGroup>
+                                    {subtests.map((st) => {
+                                      const stId = String(st._id || st.id || st.subtestId || '');
+                                      const checked = (test.selectedSubtests || []).some(s => stId && (String(s._id || s.id || s.subtestId) === stId));
+                                      return (
+                                        <FormControlLabel key={st._id || st.id || st.subtestId || st.name} control={<Checkbox checked={checked} onChange={() => toggleSubtest(test._id || test.id, st)} />} label={`${st.name} - ₹${st.price || 0}`} />
+                                      );
+                                    })}
+                                  </FormGroup>
+                                  <Box sx={{ mt: 1 }}>
+                                    <Typography variant="body2" color="textSecondary" component="div">
+                                      {(() => {
+                                        const subSel = test.selectedSubtests || [];
+                                        const testTotal = subSel.length > 0 ? subSel.reduce((s, st) => s + (st.price || 0), 0) : (test.price || 0);
+                                        return `Test Total: ₹${Number(testTotal).toFixed(2)}`;
+                                      })()}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              )}
+                            </>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <IconButton edge="end" onClick={() => handleTestRemove(test._id || test.id)} color="error"><DeleteIcon /></IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    );
+                  })}
+                </List>
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                  <Grid item xs={12} sm={4}><TextField fullWidth label="Discount Amount" type="number" value={formData.discountAmount} onChange={(e) => handleInputChange('discountAmount', parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} /></Grid>
+                  <Grid item xs={12} sm={4}><TextField fullWidth label="GST Percentage" type="number" value={formData.gstPercentage} onChange={(e) => handleInputChange('gstPercentage', parseFloat(e.target.value) || 0)} InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }} /></Grid>
+                  <Grid item xs={12} sm={4}><TextField fullWidth label="Additional Charges" type="number" value={formData.additionalCharges} onChange={(e) => handleInputChange('additionalCharges', parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} /></Grid>
+                </Grid>
+                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                  <Button variant="contained" onClick={handleSubmit} disabled={loading} startIcon={loading ? <LoadingSpinner size={20} /> : <SaveIcon />}>
+                    {loading ? 'Saving...' : (patient ? 'Update Patient' : 'Create Patient')}
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </div>
+        ) : (
+          <Stepper activeStep={activeStep} orientation="vertical">
           <Step>
             <StepLabel>Patient Details</StepLabel>
             <StepContent>
@@ -601,17 +801,18 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
                                   <div>{`Category: ${test.category} | Price: ₹${test.price}`}</div>
                                   {subtests && subtests.length > 0 && (
                                       <Box sx={{ mt: 1 }}>
-                                        <Typography variant="subtitle2">Subtests</Typography>
+                                        <Typography variant="subtitle2" component="div">Subtests</Typography>
                                         <FormGroup>
                                           {subtests.map((st) => {
-                                            const checked = (test.selectedSubtests || []).some(s => String(s._id) === String(st._id));
+                                            const stId = String(st._id || st.id || st.subtestId || '');
+                                            const checked = (test.selectedSubtests || []).some(s => stId && (String(s._id || s.id || s.subtestId) === stId));
                                             return (
-                                              <FormControlLabel key={st._id} control={<Checkbox checked={checked} onChange={() => toggleSubtest(test._id, st)} />} label={`${st.name} - ₹${st.price || 0}`} />
+                                              <FormControlLabel key={st._id || st.id || st.subtestId || st.name} control={<Checkbox checked={checked} onChange={() => toggleSubtest(test._id, st)} />} label={`${st.name} - ₹${st.price || 0}`} />
                                             );
                                           })}
                                         </FormGroup>
                                         <Box sx={{ mt: 1 }}>
-                                          <Typography variant="body2" color="textSecondary">
+                                          <Typography variant="body2" color="textSecondary" component="div">
                                             {(() => {
                                               const subSel = test.selectedSubtests || [];
                                               const testTotal = subSel.length > 0 ? subSel.reduce((s, st) => s + (st.price || 0), 0) : (test.price || 0);
@@ -687,6 +888,7 @@ const CreateOrEditPatient = ({ open, onClose, patient, invoiceMode = false, onSu
             </StepContent>
           </Step>
         </Stepper>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
