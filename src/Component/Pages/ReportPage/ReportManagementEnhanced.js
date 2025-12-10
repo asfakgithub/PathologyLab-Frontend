@@ -215,9 +215,36 @@ const ReportManagementEnhanced = () => {
     navigate(`/view/${report._id}`);
   };
 
-  const handleDownload = (report) => {
-    // This will navigate to the printable report page for the patient.
-    navigate(`/patient-report/${report._id}`);
+  const handleDownload = async (report) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/api/v1/patients/get/download/aspdf/${report._id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${report.name || 'report'}_${report._id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showSnackbar('Report downloaded successfully', 'success');
+    } catch (error) {
+      showSnackbar('Error downloading report: ' + error.message, 'error');
+    }
   }
 
   const handleCreateReport = () => {
