@@ -4,11 +4,25 @@
  */
 import axios from 'axios';
 
+// Automatically detect production based on current hostname/URL
+// If deployed on a remote server (not localhost), use PROD URL
+const isProduction = !window.location.hostname.includes('localhost') && 
+                     window.location.hostname !== '127.0.0.1' &&
+                     window.location.hostname !== '[::1]';
+
+const selectedApiUrl = isProduction 
+  ? (process.env.REACT_APP_API_URL_PROD || 'https://pathologylab-backend-72yt.onrender.com')
+  : (process.env.REACT_APP_API_URL || 'http://localhost:8000');
+
 // Base API configuration — use environment API version when provided
-const API_BASE_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/${process.env.REACT_APP_API_VERSION || 'v1'}`;
+const API_BASE_URL = `${selectedApiUrl}/api/${process.env.REACT_APP_API_VERSION || 'v1'}`;
 
 console.log('🔧 API CLIENT DEBUG:');
-console.log('  REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+console.log('  Current Hostname:', window.location.hostname);
+console.log('  Is Production (auto-detected):', isProduction);
+console.log('  REACT_APP_API_URL (dev):', process.env.REACT_APP_API_URL);
+console.log('  REACT_APP_API_URL_PROD:', process.env.REACT_APP_API_URL_PROD);
+console.log('  Selected API URL:', selectedApiUrl);
 console.log('  API_BASE_URL:', API_BASE_URL);
 
 // Create axios instance

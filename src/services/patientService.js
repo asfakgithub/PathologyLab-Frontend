@@ -245,6 +245,21 @@ export const patientService = {
       console.error('❌ UPDATE PATIENT MEDICAL HISTORY ERROR:', error);
       throw error;
     }
+  },
+
+  // Download patient report as PDF
+  downloadPatientReportPDF: async (patientId) => {
+    try {
+      const endpoint = `/patients/get/download/aspdf/${patientId}`;
+      console.log('📡 DOWNLOAD PATIENT REPORT PDF REQUEST:', `[GET]`, endpoint, 'BaseURL:', apiClient.defaults.baseURL);
+      const response = await apiClient.get(endpoint, {
+        responseType: 'blob'
+      });
+      return response;
+    } catch (error) {
+      console.error('❌ DOWNLOAD PATIENT REPORT PDF ERROR:', error);
+      throw error;
+    }
   }
 };
 

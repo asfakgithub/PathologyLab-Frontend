@@ -217,25 +217,13 @@ const ReportManagementEnhanced = () => {
 
   const handleDownload = async (report) => {
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/v1/patients/get/download/aspdf/${report._id}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-          }
-        }
-      );
+      const response = await patientService.downloadPatientReportPDF(report._id);
       
-      if (!response.ok) {
-        throw new Error('Download failed');
-      }
-      
-      const blob = await response.blob();
+      const blob = response.data || response;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${report.name || 'report'}_${report._id}.pdf`;
+      link.download = `${report.patient?.name || report.name || 'report'}_${report._id}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
