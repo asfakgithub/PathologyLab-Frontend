@@ -18,20 +18,24 @@ import {
   InputAdornment,
   Grid,
   Card,
+  CardContent,
   Autocomplete,
   Tooltip,
-  Avatar
+  Avatar,
+  Stack,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  Visibility as ViewIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Payment as PaymentIcon,
-  Person as PersonIcon,
+  Add,
+  Search,
+  Visibility,
+  Edit,
+  Delete,
+  Payment,
+  Person,
+  InfoOutlined
 } from '@mui/icons-material';
-import { InfoOutlined as InfoIcon } from '@mui/icons-material';
 import { getUsers } from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 import useSystemNotification from '../../core/hooks/useSystemNotification';
@@ -42,18 +46,23 @@ import PaymentDialog from './PaymentDialog';
 import useInvoices from '../../core/hooks/useInvoices';
 
 const InvoiceManagementNew = () => {
-  const { sendSystemNotification } = useSystemNotification();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  useSystemNotification();
   const { settings } = useContext(SettingsContext);
-  const { 
-    invoices, 
-    loading, 
-    error, 
-    success, 
-    fetchInvoices, 
+
+  const {
+    invoices,
+    loading,
+    error,
+    success,
+    fetchInvoices,
     deleteInvoice,
     setError,
-    setSuccess 
+    setSuccess
   } = useInvoices();
+
   const [users, setUsers] = useState([]);
   const [selectedRecipient, setSelectedRecipient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,7 +74,6 @@ const InvoiceManagementNew = () => {
   const [viewDialog, setViewDialog] = useState(false);
   const [paymentDialog, setPaymentDialog] = useState(false);
 
-  // Fetch invoices on component mount
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -74,50 +82,12 @@ const InvoiceManagementNew = () => {
     try {
       const res = await getUsers();
       const usersData = res?.users || [];
-      // prefer doctors/admins for recipient selection
-      const filtered = usersData.filter(u => ['doctor', 'admin', 'master', 'compounder'].includes(u.role));
-      setUsers(filtered);
-    } catch (err) {
-      console.error('Failed to fetch users for recipient selector:', err);
+      setUsers(usersData.filter(u =>
+        ['doctor', 'admin', 'master', 'compounder'].includes(u.role)
+      ));
+    } catch (e) {
+      console.error(e);
     }
-  };
-
-  const handleCreateInvoice = () => {
-    setEditingInvoice(null);
-    setOpenDialog(true);
-  };
-
-  const handleEditInvoice = (invoice) => {
-    setEditingInvoice(invoice);
-    setOpenDialog(true);
-  };
-
-  const handleViewInvoice = (invoice) => {
-    setSelectedInvoice(invoice);
-    setViewDialog(true);
-  };
-
-  const handleDeleteInvoice = async (invoiceId) => {
-    if (window.confirm('Are you sure you want to delete this invoice?')) {
-      const invoiceToDelete = invoices.find(inv => inv.invoiceId === invoiceId);
-      await deleteInvoice(invoiceId);
-      if (invoiceToDelete) {
-        try {
-          await sendSystemNotification({
-            message: `Invoice ${invoiceToDelete.invoiceNumber || invoiceToDelete.invoiceId} for patient ${invoiceToDelete.patientName || invoiceToDelete.patientId || 'Unknown'} has been deleted.`,
-            recipient: selectedRecipient?._id,
-            recipientEmail: selectedRecipient?.email
-          });
-        } catch (notificationError) {
-          console.error('Failed to send invoice deletion notification:', notificationError);
-        }
-      }
-    }
-  };
-
-  const handlePayment = (invoice) => {
-    setSelectedInvoice(invoice);
-    setPaymentDialog(true);
   };
 
   const getStatusColor = (status) => {
@@ -129,13 +99,13 @@ const InvoiceManagementNew = () => {
       default: return 'default';
     }
   };
-  
+
   const { billingEnabled, allowEdit, allowDelete } = settings.invoice || {};
 
-  const filteredInvoices = invoices.filter(invoice =>
-    invoice.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (invoice.invoiceNumber || invoice.invoiceId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredInvoices = invoices.filter(inv =>
+    inv.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    inv.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const paginatedInvoices = filteredInvoices.slice(
@@ -146,56 +116,53 @@ const InvoiceManagementNew = () => {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+    <Box p={{ xs: 2, md: 3 }}>
+      {/* Header */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ sm: 'center' }}
+        spacing={2}
+        mb={3}
+      >
+        <Typography variant="h5" fontWeight={700}>
           Invoice Management
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Autocomplete
-              options={users}
-              getOptionLabel={(option) => option?.name || option?.email || option?.firstName || ''}
-              value={selectedRecipient}
-              onChange={(e, newVal) => setSelectedRecipient(newVal)}
-              sx={{ width: 300 }}
-              renderInput={(params) => (
-                <TextField {...params} label="Notify Recipient (optional)" size="small" />
-              )}
-            />
-            <Tooltip title="If no recipient is chosen, the message will be delivered to an admin/master user by default.">
-              <IconButton size="small" aria-label="recipient-info">
-                <InfoIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          {billingEnabled &&
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreateInvoice}
-              sx={{ borderRadius: 2 }}
-            >
-              Create Invoice
-            </Button>
-          }
-        </Box>
-      </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
+        {billingEnabled && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => setOpenDialog(true)}
+            fullWidth={isMobile}
+          >
+            Create Invoice
+          </Button>
+        )}
+      </Stack>
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-          {success}
-        </Alert>
-      )}
+      {/* Recipient Selector */}
+      <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+        <Autocomplete
+          options={users}
+          value={selectedRecipient}
+          onChange={(_, v) => setSelectedRecipient(v)}
+          getOptionLabel={(o) => o?.name || o?.email || ''}
+          sx={{ width: isMobile ? '100%' : 300 }}
+          renderInput={(params) => (
+            <TextField {...params} label="Notify Recipient (optional)" size="small" />
+          )}
+        />
+        <Tooltip title="Notification will be sent to selected user">
+          <InfoOutlined fontSize="small" />
+        </Tooltip>
+      </Stack>
 
-      {/* Search and Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
+
+      {/* Search & Stats */}
+      <Grid container spacing={2} mb={3}>
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
@@ -205,169 +172,148 @@ const InvoiceManagementNew = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon />
+                  <Search />
                 </InputAdornment>
-              ),
+              )
             }}
-            sx={{ borderRadius: 2 }}
           />
         </Grid>
+
         <Grid item xs={12} md={6}>
           <Grid container spacing={2}>
-            <Grid item xs={4}>
-              <Card sx={{ textAlign: 'center', p: 1 }}>
-                <Typography variant="h6" color="primary">
-                  {filteredInvoices.length}
-                </Typography>
-                <Typography variant="body2">Total</Typography>
-              </Card>
-            </Grid>
-            <Grid item xs={4}>
-              <Card sx={{ textAlign: 'center', p: 1 }}>
-                <Typography variant="h6" color="success.main">
-                  {filteredInvoices.filter(inv => inv.status === 'paid').length}
-                </Typography>
-                <Typography variant="body2">Paid</Typography>
-              </Card>
-            </Grid>
-            <Grid item xs={4}>
-              <Card sx={{ textAlign: 'center', p: 1 }}>
-                <Typography variant="h6" color="warning.main">
-                  {filteredInvoices.filter(inv => inv.status === 'pending').length}
-                </Typography>
-                <Typography variant="body2">Pending</Typography>
-              </Card>
-            </Grid>
+            {[
+              { label: 'Total', value: filteredInvoices.length, color: 'primary.main' },
+              { label: 'Paid', value: filteredInvoices.filter(i => i.status === 'paid').length, color: 'success.main' },
+              { label: 'Pending', value: filteredInvoices.filter(i => i.status === 'pending').length, color: 'warning.main' }
+            ].map((s, i) => (
+              <Grid item xs={4} key={i}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant="h6" color={s.color}>{s.value}</Typography>
+                    <Typography variant="caption">{s.label}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
         </Grid>
       </Grid>
 
-      {/* Invoices Table */}
-      <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        <TableContainer>
-          <Table>
-            <TableHead sx={{ backgroundColor: 'primary.main' }}>
-              <TableRow>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Invoice #</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Patient</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Amount</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedInvoices.map((invoice) => (
-                <TableRow key={invoice._id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="bold">
-                      {invoice.invoiceNumber || invoice.invoiceId}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {invoice.invoiceId}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-                        <PersonIcon fontSize="small" />
-                      </Avatar>
+      {/* MOBILE VIEW */}
+      {isMobile ? (
+        <Grid container spacing={2}>
+          {paginatedInvoices.map(inv => (
+            <Grid item xs={12} key={inv._id}>
+              <Card>
+                <CardContent>
+                  <Stack spacing={1}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Avatar><Person /></Avatar>
                       <Box>
-                        <Typography variant="body2" fontWeight="bold">
-                          {invoice.patientName}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {invoice.patientPhone}
-                        </Typography>
+                        <Typography fontWeight={600}>{inv.patientName}</Typography>
+                        <Typography variant="caption">{inv.invoiceNumber}</Typography>
                       </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(invoice.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="bold">
-                      ₹{invoice.totalAmount?.toFixed(2)}
-                    </Typography>
-                    {invoice.dueAmount > 0 && (
-                      <Typography variant="caption" color="error">
-                        Due: ₹{invoice.dueAmount?.toFixed(2)}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={invoice.status?.toUpperCase()}
-                      color={getStatusColor(invoice.status)}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Tooltip title="View">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleViewInvoice(invoice)}
-                          color="primary"
-                        >
-                          <ViewIcon />
-                        </IconButton>
-                      </Tooltip>
-                      {allowEdit &&
-                        <Tooltip title="Edit">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEditInvoice(invoice)}
-                            color="secondary"
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                      }
-                      {invoice.status !== 'paid' && (
-                        <Tooltip title="Payment">
-                          <IconButton
-                            size="small"
-                            onClick={() => handlePayment(invoice)}
-                            color="success"
-                          >
-                            <PaymentIcon />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {allowDelete &&
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteInvoice(invoice.invoiceId)}
-                            color="error"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      }
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={filteredInvoices.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(event, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(0);
-          }}
-        />
-      </Paper>
+                    </Stack>
 
-      {/* Create/Edit Invoice Dialog */}
+                    <Typography>₹{inv.totalAmount}</Typography>
+                    <Chip
+                      label={inv.status}
+                      size="small"
+                      color={getStatusColor(inv.status)}
+                    />
+
+                    <Stack direction="row" spacing={1}>
+                      <IconButton onClick={() => { setSelectedInvoice(inv); setViewDialog(true); }}>
+                        <Visibility />
+                      </IconButton>
+                      {allowEdit && (
+                        <IconButton onClick={() => { setEditingInvoice(inv); setOpenDialog(true); }}>
+                          <Edit />
+                        </IconButton>
+                      )}
+                      {inv.status !== 'paid' && (
+                        <IconButton onClick={() => { setSelectedInvoice(inv); setPaymentDialog(true); }}>
+                          <Payment />
+                        </IconButton>
+                      )}
+                      {allowDelete && (
+                        <IconButton color="error" onClick={() => deleteInvoice(inv.invoiceId)}>
+                          <Delete />
+                        </IconButton>
+                      )}
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        /* DESKTOP TABLE */
+        <Paper>
+          <TableContainer>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Invoice</TableCell>
+                  <TableCell>Patient</TableCell>
+                  <TableCell>Date</TableCell>
+                  <TableCell>Amount</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedInvoices.map(inv => (
+                  <TableRow key={inv._id} hover>
+                    <TableCell>{inv.invoiceNumber}</TableCell>
+                    <TableCell>{inv.patientName}</TableCell>
+                    <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>₹{inv.totalAmount}</TableCell>
+                    <TableCell>
+                      <Chip size="small" label={inv.status} color={getStatusColor(inv.status)} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton onClick={() => { setSelectedInvoice(inv); setViewDialog(true); }}>
+                        <Visibility />
+                      </IconButton>
+                      {allowEdit && (
+                        <IconButton onClick={() => { setEditingInvoice(inv); setOpenDialog(true); }}>
+                          <Edit />
+                        </IconButton>
+                      )}
+                      {inv.status !== 'paid' && (
+                        <IconButton onClick={() => { setSelectedInvoice(inv); setPaymentDialog(true); }}>
+                          <Payment />
+                        </IconButton>
+                      )}
+                      {allowDelete && (
+                        <IconButton color="error" onClick={() => deleteInvoice(inv.invoiceId)}>
+                          <Delete />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <TablePagination
+            component="div"
+            count={filteredInvoices.length}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={(_, p) => setPage(p)}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(+e.target.value);
+              setPage(0);
+            }}
+          />
+        </Paper>
+      )}
+
+      {/* Dialogs */}
       <InvoiceFormDialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
@@ -377,19 +323,16 @@ const InvoiceManagementNew = () => {
         onSuccess={() => {
           setOpenDialog(false);
           fetchInvoices();
-          setSuccess(editingInvoice ? 'Invoice updated successfully' : 'Invoice created successfully');
         }}
-        onError={(error) => setError(error)}
+        onError={setError}
       />
 
-      {/* View Invoice Dialog */}
       <InvoiceViewDialog
         open={viewDialog}
         onClose={() => setViewDialog(false)}
         invoice={selectedInvoice}
       />
 
-      {/* Payment Dialog */}
       <PaymentDialog
         open={paymentDialog}
         onClose={() => setPaymentDialog(false)}
@@ -398,13 +341,11 @@ const InvoiceManagementNew = () => {
         onSuccess={() => {
           setPaymentDialog(false);
           fetchInvoices();
-          setSuccess('Payment added successfully');
         }}
-        onError={(error) => setError(error)}
+        onError={setError}
       />
     </Box>
   );
 };
-
 
 export default InvoiceManagementNew;
